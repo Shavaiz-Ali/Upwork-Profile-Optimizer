@@ -1,36 +1,187 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚡ Upwork Profile Optimizer
 
-## Getting Started
+An AI-powered Chrome extension + Next.js dashboard to score, rewrite, and optimize your Upwork profile — built with Next.js 14, Tailwind CSS, and Claude AI.
 
-First, run the development server:
+---
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Run the Next.js Dashboard
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and enter your Anthropic API key.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Install the Chrome Extension
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Open Chrome → `chrome://extensions`
+2. Enable **Developer Mode** (top-right toggle)
+3. Click **"Load unpacked"**
+4. Select the `extension/` folder from this project
+5. The extension icon will appear in your toolbar
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📁 Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+upwork-optimizer/
+├── app/                          # Next.js App Router
+│   ├── layout.tsx                # Root layout
+│   ├── page.tsx                  # Home / API key setup
+│   ├── dashboard/
+│   │   └── page.tsx              # Main analysis dashboard
+│   ├── api/
+│   │   └── analyze/
+│   │       └── route.ts          # Claude AI API route
+│   └── globals.css               # Tailwind + global styles
+│
+├── components/                   # Reusable React components
+│   ├── ScoreRing.tsx             # Animated SVG score ring
+│   ├── ScoreBar.tsx              # Animated progress bars
+│   ├── CopyButton.tsx            # Copy to clipboard button
+│   └── ImprovementCard.tsx       # Improvement action card
+│
+├── types/
+│   └── index.ts                  # TypeScript types
+│
+├── extension/                    # Chrome Extension (MV3)
+│   ├── manifest.json             # Extension manifest
+│   ├── background.js             # Service worker (calls Claude API)
+│   ├── content.js                # Injected on Upwork profile pages
+│   ├── popup.html                # Extension popup UI
+│   ├── popup.js                  # Popup logic
+│   └── icons/                   # Extension icons (16, 48, 128px)
+│
+├── scripts/
+│   └── generate-icons.js         # Icon generation helper
+│
+├── tailwind.config.ts
+├── next.config.mjs
+├── tsconfig.json
+└── package.json
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🔧 How It Works
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Chrome Extension Flow
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. User visits any Upwork freelancer profile (`upwork.com/freelancers/*`)
+2. Content script (`content.js`) injects a floating **"⚡ Optimize Profile"** button
+3. User clicks the button → side panel slides in
+4. Panel auto-detects profile data from the DOM (name, title, rate, bio, skills, portfolio)
+5. User enters their Anthropic API key (saved locally in `chrome.storage.local`)
+6. Background service worker sends profile data to Claude Sonnet API
+7. Results displayed in the panel: score, rewrites, skills gap, rate suggestions
+
+### Next.js Dashboard Flow
+
+1. Visit `http://localhost:3000` → enter API key
+2. Navigate to `/dashboard`
+3. Manually enter profile data (or paste from your Upwork profile)
+4. Click "Run AI Analysis" → calls `/api/analyze` route
+5. Results displayed with tabs: Score, Top Fixes, Headline, Bio, Skills, Rate, Portfolio
+
+---
+
+## 🎯 Features
+
+| Feature | Extension | Dashboard |
+|---------|-----------|-----------|
+| Auto-scrape profile data | ✅ | ❌ (manual) |
+| Profile score (0–100) | ✅ | ✅ |
+| Headline rewrite | ✅ | ✅ |
+| Bio rewrite | ✅ | ✅ |
+| Skills gap analysis | ✅ | ✅ |
+| Rate suggestions | ✅ | ✅ |
+| Portfolio tips | ✅ | ✅ |
+| Competitor comparison | ✅ | ✅ |
+| Copy rewrites to clipboard | ✅ | ✅ |
+| Re-analyze | ✅ | ✅ |
+
+---
+
+## 🔑 API Key
+
+You need an Anthropic API key to use this tool.
+
+1. Sign up at [console.anthropic.com](https://console.anthropic.com)
+2. Create an API key under **API Keys**
+3. Enter it in the extension popup or dashboard home page
+
+Your key is **stored locally** (browser localStorage / chrome.storage.local) and is **never sent to any third-party server**. It goes directly from your browser to the Anthropic API.
+
+---
+
+## 🎨 Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: Tailwind CSS
+- **Fonts**: Syne (display) + DM Sans (body) + JetBrains Mono (code)
+- **Icons**: Lucide React
+- **AI**: Claude Sonnet (`claude-sonnet-4-20250514`) via Anthropic API
+- **Extension**: Chrome MV3 (Manifest V3)
+
+---
+
+## 🚢 Deployment
+
+### Deploy Dashboard to Vercel
+
+```bash
+npx vercel --prod
+```
+
+After deploying, update the `DASHBOARD_URL` in `extension/popup.js`:
+
+```js
+const DASHBOARD_URL = "https://your-app.vercel.app";
+```
+
+### Publish Extension to Chrome Web Store
+
+1. Zip the `extension/` folder
+2. Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
+3. Upload the zip and follow the submission process
+
+---
+
+## 📝 Customization
+
+### Change the AI Model
+
+In `extension/background.js` and `app/api/analyze/route.ts`:
+
+```js
+model: "claude-opus-4-20250514", // More powerful, slower
+// or
+model: "claude-haiku-4-5-20251001", // Faster, cheaper
+```
+
+### Adjust Score Weights
+
+The scoring breakdown (headline: 25pts, bio: 25pts, skills: 20pts, portfolio: 20pts, rate: 10pts) can be customized in the prompt inside `background.js` or `route.ts`.
+
+---
+
+## ⚠️ Notes
+
+- The extension's content script scrapes publicly visible data from Upwork profile pages. It only reads data; it never modifies the page content.
+- Auto-detection works best on Upwork's standard freelancer profile pages (`/freelancers/~...`).
+- If auto-detection misses some data, you can supplement it manually in the dashboard.
+
+---
+
+## 📄 License
+
+MIT — build freely, optimize endlessly.
