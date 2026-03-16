@@ -1,4 +1,5 @@
-import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
+import { DefaultSession, DefaultUser } from "next-auth";
+import { JWT as DefaultJWT } from "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
@@ -6,32 +7,38 @@ declare module "next-auth" {
       id: string;
       email: string;
       role: string;
+      displayName?: string;
+      onboardingCompleted: boolean;
       name?: string | null;
       university_id?: string | null;
       image?: string | null;
     } & DefaultSession["user"];
-    accessToken: string;
+    accessToken?: string;
   }
 
   interface User extends DefaultUser {
     id: string;
     email: string;
     role: string;
+    displayName?: string;
+    onboardingCompleted: boolean;
     name?: string | null;
     university_id?: string | null;
     image?: string | null;
-    accessToken: string;
+    accessToken?: string;
   }
 }
 
 declare module "next-auth/jwt" {
-  interface JWT {
+  interface JWT extends DefaultJWT {
     id: string;
     email: string;
     role: string;
+    displayName?: string;
+    onboardingCompleted: boolean;
     name?: string | null;
     university_id?: string | null;
     picture?: string | null;
-    accessToken: string;
+    accessToken?: string;
   }
 }

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Nunito, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+import SessionProvider from "@/providers/session-provider";
 
 const fontSans = Nunito({
   subsets: ["latin"],
@@ -37,7 +39,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <SessionProvider>
+            {children}
+            <Toaster />
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

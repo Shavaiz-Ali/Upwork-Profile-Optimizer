@@ -1,4 +1,4 @@
-import { Schema, model, models, Document } from "mongoose";
+import { Schema, model, models, Document, Types } from "mongoose";
 
 // Interface for TypeScript support
 export interface IUser extends Document {
@@ -7,9 +7,6 @@ export interface IUser extends Document {
     image?: string;
     password?: string;
     displayName?: string;
-    aiModel: "gemini" | "gpt4o" | "claude";
-    aiApiKey?: string;
-    customPrompt?: string;
     onboardingCompleted: boolean;
     role: string;
     createdAt: Date;
@@ -32,24 +29,12 @@ const UserSchema = new Schema<IUser>(
         },
         image: {
             type: String,
-            optional: true,
         },
         password: {
             type: String,
             select: false,
         },
         displayName: {
-            type: String,
-        },
-        aiModel: {
-            type: String,
-            enum: ["gemini", "gpt4o", "claude"],
-            default: "gemini",
-        },
-        aiApiKey: {
-            type: String,
-        },
-        customPrompt: {
             type: String,
         },
         onboardingCompleted: {

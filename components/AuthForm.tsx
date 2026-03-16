@@ -5,13 +5,59 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { FormInput } from "@/components/FormInput"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { signIn } from "next-auth/react"
+import { getSession, signIn } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { signupAction } from "@/lib/actions/auth.actions"
+import { toast } from "sonner"
 
 export function AuthForm({ type }: { type: "login" | "signup" }) {
     const isLogin = type === "login"
+    const router = useRouter()
+    const [email, setEmail] = React.useState("")
+    const [password, setPassword] = React.useState("")
+    const [isLoading, setIsLoading] = React.useState(false)
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        setIsLoading(true)
+
+        try {
+            if (!isLogin) {
+                // Signup flow
+                const res = await signupAction({ email, password })
+                if (!res.success) {
+                    toast.error(res.error || "Signup failed")
+                    setIsLoading(false)
+                    return
+                }
+                // Auto-login after signup
+            }
+
+            // Login flow (or auto-login after signup)
+            const result = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
+            })
+
+            if (result?.error) {
+                toast.error(result.error || "Something went wrong during authentication.")
+            } else {
+                const session = await getSession()
+                toast.success(isLogin ? "Logged in successfully!" : "Account created and logged in!")
+
+                if (session?.user.onboardingCompleted) {
+                    router.push("/dashboard")
+                } else {
+                    router.push("/onboarding")
+                }
+                router.refresh()
+            }
+        } catch (err) {
+            toast.error("Something went wrong. Please try again.")
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -55,16 +101,20 @@ export function AuthForm({ type }: { type: "login" | "signup" }) {
                         label="Email"
                         type="email"
                         placeholder="m@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         required
                     />
                     <FormInput
                         id="password"
                         label="Password"
                         type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         required
                     />
-                    <Button className="w-full" size="lg" type="submit">
-                        {isLogin ? "Sign In" : "Sign Up"}
+                    <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
+                        {isLoading ? "Please wait..." : (isLogin ? "Sign In" : "Sign Up")}
                     </Button>
                 </form>
             </CardContent>
