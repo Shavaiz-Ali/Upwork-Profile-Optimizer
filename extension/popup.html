@@ -5,402 +5,586 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Upwork Profile Optimizer</title>
+
+    <!--
+        Font: Nunito — matches --font-sans in globals.css (layout.tsx)
+        Nunito Sans — matches --font-mono in globals.css
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"
-        rel="stylesheet" />
-    <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
 
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /*
+         * Theme tokens — extracted from globals.css (.dark block)
+         *
+         * --background:       oklch(0.2303 0.0125 264.2926)
+         * --card:             oklch(0.3210 0.0078 223.6661)
+         * --foreground:       oklch(0.9219 0 0)
+         * --muted-foreground: oklch(0.7155 0 0)
+         * --border:           oklch(0.3867 0 0)
+         * --primary:          oklch(0.5676 0.2021 283.0838)
+         * --secondary:        oklch(0.3390 0.1793 301.6848)
+         * --accent:           oklch(0.6746 0.1414 261.3380)
+         * --destructive:      oklch(0.6368 0.2078 25.3313)
+         * --muted:            oklch(0.3867 0 0)
+         * --radius:           0.5rem
+         */
         :root {
-            --bg: #080c10;
-            --surface: #0d1117;
-            --surface2: #161b22;
-            --border: #21262d;
-            --border2: #30363d;
-            --text: #e6edf3;
-            --muted: #8b949e;
-            --dim: #484f58;
-            --green: #22c55e;
-            --green-dim: rgba(34, 197, 94, 0.1);
-            --green-border: rgba(34, 197, 94, 0.2);
+            --bg:       #1c2132;   /* --background dark */
+            --card:     #252d42;   /* --card dark */
+            --card2:    #2b3450;   /* slightly lighter card layer */
+            --input:    #222a3e;   /* --input dark */
+            --border:   #3a4460;   /* --border dark */
+            --fg:       #eaeef8;   /* --foreground dark */
+            --muted:    #8a93a8;   /* --muted-foreground dark */
+            --dim:      #4e5a78;   /* dim text / placeholders */
+
+            /* Primary — oklch(0.5676 0.2021 283.0838) ≈ purple-blue */
+            --primary:        #6d5de6;
+            --primary-hover:  #5c4dce;
+            --primary-ring:   rgba(109, 93, 230, 0.28);
+            --primary-subtle: rgba(109, 93, 230, 0.10);
+            --primary-border: rgba(109, 93, 230, 0.25);
+
+            /* Accent — oklch(0.6746 0.1414 261.3380) ≈ blue-violet */
+            --accent:         #6089d4;
+            --accent-subtle:  rgba(96, 137, 212, 0.10);
+
+            /* Destructive */
+            --error:          #e36248;
+            --error-subtle:   rgba(227, 98, 72, 0.10);
+
+            --radius: 10px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.35);
         }
 
         body {
-            width: 380px;
+            width: 360px;
             background: var(--bg);
-            color: var(--text);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 14px;
+            color: var(--fg);
+            font-family: 'Nunito', system-ui, sans-serif;
+            font-size: 13.5px;
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Header */
-        .header {
+        /* ──────────────────── Screens ─────────────────────── */
+        .screen { display: none; flex-direction: column; }
+        .screen.active { display: flex; }
+
+        /* ──────────────────── Header ──────────────────────── */
+        .hdr {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 16px 18px;
+            padding: 13px 16px;
+            background: var(--card);
             border-bottom: 1px solid var(--border);
-            background: var(--surface);
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 9px;
         }
 
         .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: var(--green-dim);
-            border: 1px solid var(--green-border);
+            width: 30px;
+            height: 30px;
             border-radius: 8px;
+            background: var(--primary-subtle);
+            border: 1px solid var(--primary-border);
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .logo-icon svg {
-            color: var(--green);
+            color: var(--primary);
         }
 
         .logo-text {
-            font-family: 'Syne', sans-serif;
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--text);
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--fg);
+            letter-spacing: -0.01em;
         }
 
         .badge {
             font-size: 10px;
-            font-weight: 600;
-            padding: 3px 8px;
+            font-weight: 700;
+            padding: 3px 9px;
             border-radius: 20px;
-            background: var(--green-dim);
-            border: 1px solid var(--green-border);
-            color: var(--green);
+            background: var(--primary-subtle);
+            border: 1px solid var(--primary-border);
+            color: var(--primary);
+            letter-spacing: 0.03em;
         }
 
-        /* Body */
-        .body {
-            padding: 18px;
+        /* ──────────────────── LOGIN SCREEN ────────────────── */
+        #screen-login {
+            min-height: 360px;
         }
 
-        /* API Key section */
-        .section-label {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            color: var(--dim);
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-
-        .input-wrap {
-            position: relative;
-            margin-bottom: 8px;
-        }
-
-        input[type="password"],
-        input[type="text"] {
-            width: 100%;
-            padding: 10px 14px;
-            background: var(--surface2);
-            border: 1px solid var(--border2);
-            border-radius: 10px;
-            color: var(--text);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            outline: none;
-            transition: border-color 0.15s;
-        }
-
-        input:focus {
-            border-color: rgba(34, 197, 94, 0.5);
-            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.08);
-        }
-
-        ::placeholder {
-            color: var(--dim);
-        }
-
-        .hint {
-            font-size: 11px;
-            color: var(--dim);
-            margin-bottom: 14px;
+        .login-body {
+            flex: 1;
             display: flex;
-            gap: 5px;
-            align-items: center;
+            flex-direction: column;
+            padding: 28px 20px 20px;
         }
 
-        .hint svg {
-            flex-shrink: 0;
-            color: rgba(34, 197, 94, 0.6);
+        /* Hero */
+        .login-hero {
+            text-align: center;
+            margin-bottom: 26px;
+        }
+
+        .hero-orb {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            background: var(--primary-subtle);
+            border: 1px solid var(--primary-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            margin: 0 auto 14px;
+        }
+
+        .login-hero h1 {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--fg);
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+        }
+
+        .login-hero p {
+            font-size: 12.5px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        /* Form */
+        .field-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--muted);
+            margin-bottom: 7px;
+        }
+
+        .input-wrap { position: relative; margin-bottom: 4px; }
+
+        .input-icon {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dim);
+            pointer-events: none;
+            display: flex;
+        }
+
+        input[type="email"] {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            background: var(--input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--fg);
+            font-family: 'Nunito', system-ui, sans-serif;
+            font-size: 13.5px;
+            font-weight: 500;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        input[type="email"]::placeholder { color: var(--dim); font-weight: 400; }
+        input[type="email"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ring);
+        }
+        input[type="email"].is-error {
+            border-color: var(--error);
+            box-shadow: 0 0 0 3px var(--error-subtle);
+        }
+
+        .field-error {
+            display: none;
+            align-items: center;
+            gap: 5px;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--error);
+            font-weight: 500;
+        }
+        .field-error.show { display: flex; }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 11px 16px;
+            border-radius: var(--radius);
+            font-family: 'Nunito', system-ui, sans-serif;
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s, box-shadow 0.15s, transform 0.1s, opacity 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            letter-spacing: 0.01em;
+            border: none;
         }
 
         .btn-primary {
-            width: 100%;
-            padding: 11px 16px;
-            background: var(--green);
-            border: none;
-            border-radius: 10px;
-            color: #0a1a0a;
-            font-family: 'Syne', sans-serif;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.15s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            background: var(--primary);
+            color: #fff;
+            margin-top: 18px;
         }
-
-        .btn-primary:hover {
-            background: #16a34a;
-            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+            box-shadow: 0 4px 20px var(--primary-ring);
         }
+        .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .btn-primary:active {
-            transform: scale(0.98);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            width: 100%;
-            padding: 10px 16px;
-            margin-top: 8px;
+        .btn-outline {
             background: transparent;
-            border: 1px solid var(--border2);
-            border-radius: 10px;
             color: var(--muted);
-            font-family: 'Syne', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            border: 1px solid var(--border);
+            margin-top: 10px;
+        }
+        .btn-outline:hover {
+            border-color: var(--primary-border);
+            color: var(--primary);
+            background: var(--primary-subtle);
         }
 
-        .btn-secondary:hover {
-            border-color: var(--green-border);
-            color: var(--green);
-            background: var(--green-dim);
+        /* Spinner */
+        .spinner {
+            width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.65s linear infinite;
+            display: none;
+            flex-shrink: 0;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         /* Divider */
         .divider {
-            height: 1px;
-            background: var(--border);
-            margin: 16px 0;
-        }
-
-        /* Status */
-        .status-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            border-radius: 10px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            margin-bottom: 14px;
-        }
-
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .status-dot.active {
-            background: var(--green);
-            box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
-            animation: pulse 2s infinite;
-        }
-
-        .status-dot.inactive {
-            background: var(--dim);
-        }
-
-        .status-text {
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .status-text strong {
-            color: var(--text);
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        /* Open dashboard link */
-        .open-link {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 14px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            text-decoration: none;
-            transition: border-color 0.15s;
-        }
-
-        .open-link:hover {
-            border-color: var(--green-border);
-            background: var(--green-dim);
-        }
-
-        .open-link-left {
             display: flex;
             align-items: center;
             gap: 10px;
+            margin: 18px 0 14px;
         }
-
-        .open-link-icon {
-            width: 28px;
-            height: 28px;
-            border-radius: 7px;
-            background: var(--green-dim);
-            border: 1px solid var(--green-border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
         }
-
-        .open-link-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .open-link-sub {
+        .divider span {
             font-size: 11px;
             color: var(--dim);
+            white-space: nowrap;
         }
 
         /* Footer */
         .footer {
-            padding: 12px 18px;
+            padding: 11px 16px;
             border-top: 1px solid var(--border);
-            background: var(--surface);
+            background: var(--card);
             font-size: 11px;
             color: var(--dim);
             text-align: center;
         }
+        .footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+        .footer a:hover { text-decoration: underline; }
 
-        .footer a {
-            color: rgba(34, 197, 94, 0.7);
+        /* ──────────────────── MAIN SCREEN ─────────────────── */
+        .body { padding: 16px; }
+
+        .section-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--dim);
+            text-transform: uppercase;
+            margin-bottom: 9px;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 10px 13px;
+            border-radius: var(--radius);
+            background: var(--card2);
+            border: 1px solid var(--border);
+            margin-bottom: 13px;
+        }
+
+        .status-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .status-dot.active {
+            background: var(--primary);
+            box-shadow: 0 0 6px var(--primary-ring);
+            animation: pulse 2s infinite;
+        }
+        .status-dot.inactive { background: var(--dim); }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+        .status-text { font-size: 12px; color: var(--muted); }
+        .status-text strong { color: var(--fg); }
+
+        .open-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 11px 13px;
+            background: var(--card2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             text-decoration: none;
+            transition: border-color 0.15s, background 0.15s;
+            margin-bottom: 10px;
         }
+        .open-link:hover {
+            border-color: var(--primary-border);
+            background: var(--primary-subtle);
+        }
+        .open-link-left { display: flex; align-items: center; gap: 10px; }
+        .open-link-icon {
+            width: 28px; height: 28px;
+            border-radius: 7px;
+            background: var(--primary-subtle);
+            border: 1px solid var(--primary-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+        .open-link-title { font-size: 13px; font-weight: 700; color: var(--fg); }
+        .open-link-sub { font-size: 11px; color: var(--dim); }
 
-        .footer a:hover {
-            color: var(--green);
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 12px;
+            background: var(--card2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 13px;
         }
+        .user-avatar {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: var(--primary-subtle);
+            border: 1px solid var(--primary-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+        .user-info { flex: 1; min-width: 0; }
+        .user-email { font-size: 12px; font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .user-role  { font-size: 10px; color: var(--dim); }
+
+        .sign-out-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--dim);
+            padding: 4px;
+            border-radius: 6px;
+            display: flex;
+            transition: color 0.15s, background 0.15s;
+        }
+        .sign-out-btn:hover { color: var(--error); background: var(--error-subtle); }
+
+        .divider-line { height: 1px; background: var(--border); margin: 13px 0; }
     </style>
 </head>
-
 <body>
-    <div class="header">
+
+<!-- ══════════════════════════════════════════════════
+     SCREEN: Login — shown when no token in storage
+═══════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-login">
+    <header class="hdr">
         <div class="logo">
             <div class="logo-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                 </svg>
             </div>
             <span class="logo-text">Profile Optimizer</span>
         </div>
         <span class="badge">AI Powered</span>
-    </div>
+    </header>
+
+    <main class="login-body">
+        <!-- Hero -->
+        <div class="login-hero">
+            <div class="hero-orb">
+                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+            </div>
+            <h1>Sign in to continue</h1>
+            <p>Enter your email to access your<br>AI-powered profile optimizer.</p>
+        </div>
+
+        <!-- Email form -->
+        <form id="loginForm" novalidate>
+            <label for="emailInput" class="field-label">Email address</label>
+            <div class="input-wrap">
+                <span class="input-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                </span>
+                <input
+                    type="email"
+                    id="emailInput"
+                    placeholder="you@example.com"
+                    autocomplete="email"
+                    spellcheck="false"
+                    required
+                />
+            </div>
+            <!-- Inline error -->
+            <div class="field-error" id="emailError" role="alert" aria-live="polite">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span id="emailErrorText">Please enter a valid email.</span>
+            </div>
+
+            <!-- Continue button -->
+            <button type="submit" class="btn btn-primary" id="continueBtn">
+                <div class="spinner" id="btnSpinner"></div>
+                <span id="btnLabel">Continue</span>
+                <svg id="btnArrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </button>
+        </form>
+
+        <!-- Divider -->
+        <div class="divider"><span>New here?</span></div>
+
+        <!-- Create account -->
+        <button type="button" class="btn btn-outline" id="createAccountBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <line x1="19" y1="8" x2="19" y2="14"/>
+                <line x1="22" y1="11" x2="16" y2="11"/>
+            </svg>
+            Create an account
+        </button>
+    </main>
+
+    <footer class="footer">
+        By signing in you agree to our <a href="#" id="termsLink">Terms</a> &amp; <a href="#" id="privacyLink">Privacy</a>
+    </footer>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     SCREEN: Main app — shown when token exists
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-main">
+    <header class="hdr">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+            </div>
+            <span class="logo-text">Profile Optimizer</span>
+        </div>
+        <span class="badge">AI Powered</span>
+    </header>
 
     <div class="body">
-        <!-- API Key -->
-        <div class="section-label">Anthropic API Key</div>
-        <div class="input-wrap">
-            <input type="password" id="apiKey" placeholder="sk-ant-api03-..." />
-        </div>
-        <div class="hint">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            Stored locally. Never sent to our servers.
-        </div>
 
-        <button class="btn-primary" id="saveBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-                <polyline points="17 21 17 13 7 13 7 21" />
-                <polyline points="7 3 7 8 15 8" />
-            </svg>
-            Save API Key
-        </button>
-
-        <div class="divider"></div>
+        <!-- Logged-in user chip -->
+        <div class="user-chip">
+            <div class="user-avatar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+            </div>
+            <div class="user-info">
+                <div class="user-email" id="userEmail">Loading…</div>
+                <div class="user-role">Logged in</div>
+            </div>
+            <button class="sign-out-btn" id="signOutBtn" title="Sign out">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+            </button>
+        </div>
 
         <!-- Page status -->
+        <div class="section-label">Current page</div>
         <div class="status-row" id="statusRow">
             <div class="status-dot inactive" id="statusDot"></div>
             <div class="status-text" id="statusText">Navigate to an Upwork freelancer profile to analyze</div>
         </div>
 
+        <div class="divider-line"></div>
+
         <!-- Open full dashboard -->
+        <div class="section-label">Quick actions</div>
         <a class="open-link" id="openDashboard" href="#" target="_blank">
             <div class="open-link-left">
                 <div class="open-link-icon">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7" />
-                        <rect x="14" y="3" width="7" height="7" />
-                        <rect x="14" y="14" width="7" height="7" />
-                        <rect x="3" y="14" width="7" height="7" />
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                     </svg>
                 </div>
                 <div>
                     <div class="open-link-title">Full Dashboard</div>
-                    <div class="open-link-sub">Manually enter & analyze any profile</div>
+                    <div class="open-link-sub">Analyze &amp; optimize your profile</div>
                 </div>
             </div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#484f58" stroke-width="2">
-                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim)">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
             </svg>
         </a>
+
     </div>
 
-    <div class="footer">
-        Don't have a key? <a href="https://console.anthropic.com/keys" target="_blank">Get one free →</a>
-    </div>
+    <footer class="footer">
+        Upwork Profile Optimizer &mdash; <a id="footerDashLink" href="#">Open Dashboard →</a>
+    </footer>
+</div>
 
-    <script src="popup.js"></script>
+
+<script src="popup.js"></script>
 </body>
-
 </html>

@@ -5,6 +5,7 @@ import { useState } from "react"
 import { updateUserProfileAction, updateAiConfigAction } from "@/lib/actions/onboarding.actions"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     Card,
@@ -16,37 +17,46 @@ import {
 import { FormInput } from "@/components/FormInput"
 import { FormCombobox } from "@/components/FormCombobox"
 import { FormTextarea } from "@/components/FormTextarea"
+import { AiModelOption } from "@/config/ai-models"
 
-export function Onboarding({ availableModels = [] }: { availableModels: { id: string, name: string, label: string }[] }) {
+export function Onboarding({ availableModels = [] }: { availableModels: AiModelOption[] }) {
     const [isPending, setIsPending] = useState(false)
+    const [isRedirecting, setIsRedirecting] = useState(false)
     const [selectedModelId, setSelectedModelId] = useState(availableModels[0]?.id || "")
     const [displayName, setDisplayName] = useState("")
     const [apiKey, setApiKey] = useState("")
     const [customPrompt, setCustomPrompt] = useState("")
     const { update } = useSession()
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const selectedModel = availableModels.find((m) => m.id === selectedModelId)
+
+    const handleSubmit = async (e: React.ChangeEvent<HTMLFormElement>) => {
         e.preventDefault()
+        if (!selectedModel) {
+            toast.error("Please select an AI model.")
+            return
+        }
+
         setIsPending(true)
         try {
             // 1. Update User Profile
             const profileRes = await updateUserProfileAction({ displayName })
             if (!profileRes.success) {
                 toast.error(profileRes.error || "Could not update your display name.")
-                setIsPending(false)
                 return
             }
 
-            // 2. Update AI Configuration
+            // 2. Save API Key (to UserApiKey) + Create AI Model config (to AiModel)
             const aiRes = await updateAiConfigAction({
-                aiModel: selectedModelId,
-                aiApiKey: apiKey,
+                modelId: selectedModel.modelId,
+                provider: selectedModel.provider,
+                apiKey,
+                modelName: selectedModel.label,
                 customPrompt,
             })
 
             if (!aiRes.success) {
                 toast.error(aiRes.error || "Could not save your AI model settings.")
-                setIsPending(false)
                 return
             }
 
@@ -58,15 +68,43 @@ export function Onboarding({ availableModels = [] }: { availableModels: { id: st
 
             toast.success("Your profile has been successfully configured!")
 
-            // 4. Redirect
+            // 4. Show redirect loader then navigate
+            setIsRedirecting(true)
             setTimeout(() => {
                 window.location.href = "/dashboard"
-            }, 1000)
+            }, 2000)
         } catch (error) {
             toast.error("An error occurred during setup. Please try again.")
         } finally {
             setIsPending(false)
         }
+    }
+
+    if (isRedirecting) {
+        return (
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/90 backdrop-blur-xl">
+                <div className="flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="relative w-20 h-20">
+                        <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+                        <div className="absolute inset-0 rounded-full border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+                        <div className="absolute inset-3 rounded-full bg-primary/10 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div className="text-center space-y-2">
+                        <h2 className="text-2xl font-bold text-foreground">Setup Complete!</h2>
+                        <p className="text-muted-foreground text-sm">Redirecting you to your dashboard…</p>
+                    </div>
+                    <div className="flex gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
+                        <span className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
+                        <span className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -95,9 +133,6 @@ export function Onboarding({ availableModels = [] }: { availableModels: { id: st
                     />
 
                     <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-primary/5 p-6 transition-all hover:bg-primary/10">
-                        {/* <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
-                        </div> */}
                         <h3 className="flex items-center text-lg font-semibold text-foreground mb-4 relative z-10">
                             <svg className="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
                             AI Model Configuration
@@ -116,9 +151,9 @@ export function Onboarding({ availableModels = [] }: { availableModels: { id: st
 
                             <FormInput
                                 id="apiKey"
-                                label={`${availableModels.find(m => m.id === selectedModelId)?.label || "AI"} API Key`}
+                                label={`${selectedModel?.label || "AI"} API Key`}
                                 type="password"
-                                placeholder={`Paste your API key here`}
+                                placeholder="Paste your API key here"
                                 value={apiKey}
                                 onChange={(e) => setApiKey(e.target.value)}
                                 required
@@ -136,9 +171,16 @@ export function Onboarding({ availableModels = [] }: { availableModels: { id: st
                     </div>
 
                     <Button type="submit" className="w-full" size="lg" disabled={isPending}>
-                        {isPending ? "Setting up..." : "Complete Setup"}
-                        {!isPending && (
-                            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        {isPending ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Setting up...
+                            </>
+                        ) : (
+                            <>
+                                Complete Setup
+                                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                            </>
                         )}
                     </Button>
                 </form>

@@ -18,7 +18,7 @@ export default withAuth(
 
         // --- User is logged in ---
         if (token) {
-            if (pathname === "/login" || pathname === "/sign-up") {
+            if (pathname === "/login" || pathname === "/signup") {
                 // Redirect logged-in users away from auth pages
                 return NextResponse.redirect(new URL("/dashboard", req.url));
             }
@@ -38,7 +38,7 @@ export default withAuth(
         }
 
         // --- User is NOT logged in ---
-        if (pathname === "/login" || pathname === "/sign-up" || pathname === "/") {
+        if (pathname === "/login" || pathname === "/signup" || pathname === "/") {
             // Allow access to login, sign-up, and landing page
             return NextResponse.next();
         }
@@ -60,11 +60,12 @@ export const config = {
         /*
          * Match all request paths except for the ones starting with:
          * - api (API routes)
+         * - extension-api (Extension internal API routes)
          * - _next/static (static files)
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
          * - .*\\..* (any file with an extension, e.g., image.png)
          */
-        "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)",
+        "/((?!api|extension-api|_next/static|_next/image|favicon.ico|.*\\..*).*)",
     ],
 };

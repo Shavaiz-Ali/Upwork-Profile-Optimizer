@@ -1,23 +1,27 @@
-"use server"
+"use server";
 
 import connectToDatabase from "@/lib/db";
 import User from "@/lib/models/user.model";
+import UserApiKey from "@/lib/models/user-api-key.model";
 import AiModel from "@/lib/models/ai-model.model";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { successActionResponse, errorActionResponse } from "@/lib/action-response";
 
+/**
+ * Step 1 of onboarding: save the user's display name.
+ */
 export async function updateUserProfileAction(data: { displayName: string }) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || !session.user?.id) {
+        if (!session?.user?.id) {
             return errorActionResponse("Unauthorized");
         }
 
         await connectToDatabase();
+
         await User.findByIdAndUpdate(session.user.id, {
             displayName: data.displayName,
-            onboardingCompleted: true,
         });
 
         return successActionResponse(null, "Profile updated successfully");
@@ -27,30 +31,58 @@ export async function updateUserProfileAction(data: { displayName: string }) {
     }
 }
 
+/**
+ * Step 2 of onboarding:
+ * - Save the API key to UserApiKey (key is hidden by default via select:false).
+ * - Create/update the AiModel configuration referencing that key.
+ * - Mark the user's onboarding as complete.
+ */
 export async function updateAiConfigAction(data: {
-    aiModel: string;
-    aiApiKey: string;
-    customPrompt?: string;
+    modelId: string;        // The selected AiModel _id (from the dropdown)
+    provider: string;       // e.g. "openai", "google", "anthropic", "other"
+    apiKey: string;         // The raw API key entered by the user
+    modelName: string;      // Human readable config name e.g. "My OpenAI Setup"
+    customPrompt?: string;  // Optional system prompt
 }) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || !session.user?.id) {
-            return { success: false, error: "Unauthorized" };
+        if (!session?.user?.id) {
+            return errorActionResponse("Unauthorized");
         }
 
-        const { aiModel, aiApiKey, customPrompt } = data;
-        if (!aiModel || !aiApiKey) {
-            return errorActionResponse("AI model and API key are required");
+        const { modelId, provider, apiKey, modelName, customPrompt } = data;
+
+        if (!modelId || !provider || !apiKey || !modelName) {
+            return errorActionResponse("All fields are required");
         }
 
         await connectToDatabase();
 
-        // Update AI Model with user-specific key and prompt
-        await AiModel.findOneAndUpdate(
-            { userId: session.user.id, _id: aiModel },
-            { apiKey: aiApiKey, customPrompt },
-            { new: true, runValidators: true }
+        const userId = session.user.id;
+
+        // 1. Upsert the API key for this user + provider combo
+        const apiKeyDoc = await UserApiKey.findOneAndUpdate(
+            { userId, provider },
+            { key: apiKey, label: `${provider} key`, isActive: true },
+            { new: true, upsert: true, runValidators: true }
         );
+
+        // 2. Upsert the AI model configuration
+        await AiModel.findOneAndUpdate(
+            { userId, name: modelName },
+            {
+                userId,
+                apiKeyId: apiKeyDoc._id,
+                modelId,
+                name: modelName,
+                settings: customPrompt ? new Map([["customPrompt", customPrompt]]) : new Map(),
+                isActive: true,
+            },
+            { new: true, upsert: true, runValidators: true }
+        );
+
+        // 3. Mark user onboarding as complete
+        await User.findByIdAndUpdate(userId, { onboardingCompleted: true });
 
         return successActionResponse(null, "AI configuration saved successfully");
     } catch (error: any) {
