@@ -219,6 +219,7 @@
             .upo-preview-key { color: var(--upo-dim); }
             .upo-preview-val { color: var(--upo-fg); font-weight: 600; text-align: right; max-width: 65%; word-break: break-word; }
             .upo-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .upo-line-clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
             /* Results view components */
             .upo-score-hero {
@@ -257,28 +258,61 @@
             /* Accordion */
             .upo-accordion {
                 background: var(--upo-card2); border: 1px solid var(--upo-border);
-                border-radius: var(--upo-radius); margin-bottom: 20px;
-                overflow: hidden; transition: border-color 0.2s;
+                border-radius: var(--upo-radius); margin-bottom: 12px;
+                overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s;
             }
+            .upo-accordion:hover { border-color: rgba(109, 93, 230, 0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
             .upo-accordion-header {
-                padding: 14px; display: flex; justify-content: space-between; align-items: center;
-                cursor: pointer; background: var(--upo-card2); user-select: none;
+                padding: 16px; display: flex; justify-content: space-between; align-items: center;
+                cursor: pointer; background: transparent; user-select: none; transition: background 0.2s;
             }
-            .upo-accordion-header:hover { background: var(--upo-card); }
+            .upo-accordion-header:hover { background: rgba(255,255,255,0.03); }
             .upo-accordion-title {
-                font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--upo-muted); letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px;
+                font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--upo-muted); letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; line-height: 1.4;
             }
             .upo-accordion-icon {
-                transition: transform 0.2s cubic-bezier(0.16,1,0.3,1); color: var(--upo-muted);
+                transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), color 0.2s; color: var(--upo-muted); flex-shrink: 0;
             }
-            .upo-accordion.open .upo-accordion-icon { transform: rotate(180deg); }
+            .upo-accordion:hover .upo-accordion-icon { color: var(--upo-fg); }
+            .upo-accordion.open .upo-accordion-icon { transform: rotate(180deg); color: var(--upo-primary); }
             .upo-accordion-content {
-                max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.16,1,0.3,1);
+                max-height: 0; overflow: hidden; transition: max-height 0.6s cubic-bezier(0.16,1,0.3,1), opacity 0.4s; opacity: 0;
             }
-            .upo-accordion.open .upo-accordion-content { max-height: 400px; overflow-y: auto; }
-            .upo-accordion-inner { padding: 0 14px 14px 14px; }
+            .upo-accordion.open .upo-accordion-content { max-height: 3000px; opacity: 1; }
+            .upo-accordion-inner { padding: 0 16px 16px 16px; }
             .upo-accordion-inner::-webkit-scrollbar { width: 4px; }
             .upo-accordion-inner::-webkit-scrollbar-thumb { background: var(--upo-border); border-radius: 4px; }
+
+            /* New Multi-Screen / Details UI */
+            .upo-back-btn {
+                display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700;
+                color: var(--upo-primary); cursor: pointer; border: none; background: none; padding: 0; margin-bottom: 20px;
+                transition: transform 0.2s;
+            }
+            .upo-back-btn:hover { transform: translateX(-4px); }
+            
+            .upo-summary-card {
+                background: var(--upo-card2); border: 1px solid var(--upo-border); border-radius: var(--upo-radius);
+                padding: 16px; margin-bottom: 12px; cursor: pointer;
+                display: flex; justify-content: space-between; align-items: center;
+                transition: transform 0.2s, border-color 0.2s, background 0.2s;
+            }
+            .upo-summary-card:hover { background: var(--upo-card); border-color: var(--upo-primary-border); transform: translateY(-2px); }
+            .upo-summary-card-title { font-size: 15px; font-weight: 800; color: var(--upo-fg); text-transform: capitalize; }
+            .upo-summary-card-score { text-align: right; }
+
+            .upo-section-item {
+                background: var(--upo-card2); border: 1px solid var(--upo-border); border-radius: var(--upo-radius);
+                padding: 16px; margin-bottom: 8px; cursor: pointer;
+                display: flex; justify-content: space-between; align-items: center;
+                transition: all 0.2s;
+            }
+            .upo-section-item:hover { 
+                background: var(--upo-card); border-color: var(--upo-primary-border); 
+                transform: translateY(-2px);
+            }
+            .upo-section-item:active { transform: scale(0.98); }
+            .upo-section-item-name { font-size: 15px; font-weight: 800; color: var(--upo-fg); text-transform: capitalize; }
         `;
     document.head.appendChild(style);
   }
@@ -637,18 +671,19 @@
 
             <div class="upo-accordion" id="upo-profile-accordion" style="border-color: ${!profile.isLikelyProfile ? 'var(--upo-warn)' : 'var(--upo-border)'}">
                 <div class="upo-accordion-header" id="upo-accordion-toggle">
-                    <div class="upo-accordion-title">
-                        <span>Detected Profile Context</span>
-                        ${!profile.isLikelyProfile ? '<span style="color:var(--upo-warn)">⚠️ Low Confidence</span>' : ''}
+                    <div class="upo-accordion-title" style="max-width: 85%;">
+                        <span class="upo-truncate" style="max-width: 120px;" title="${profile.name || 'Detected Profile Context'}">${profile.name || 'Detected Profile Context'}</span>
+                        ${profile.title ? `<span class="upo-truncate" style="text-transform: none; font-weight: 500; font-size: 10.5px; opacity: 0.8; max-width: 150px;" title="${profile.title}">- ${profile.title}</span>` : ''}
+                        ${!profile.isLikelyProfile ? '<span style="color:var(--upo-warn); flex-shrink: 0;">⚠️ Low Confidence</span>' : ''}
                     </div>
-                    <svg class="upo-accordion-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="upo-accordion-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </div>
                 <div class="upo-accordion-content">
                     <div class="upo-accordion-inner">
-                        <div class="upo-preview-row" style="margin-top: 4px;"><span class="upo-preview-key">Name</span><span class="upo-preview-val upo-truncate" style="max-width: 75%;">${profile.name || '-'}</span></div>
-                        <div class="upo-preview-row"><span class="upo-preview-key">Role</span><span class="upo-preview-val upo-truncate" style="max-width: 75%;">${profile.title || '-'}</span></div>
+                        <div class="upo-preview-row" style="margin-top: 4px;"><span class="upo-preview-key">Name</span><span class="upo-preview-val upo-truncate" style="max-width: 75%;" title="${profile.name || ''}">${profile.name || '-'}</span></div>
+                        <div class="upo-preview-row"><span class="upo-preview-key">Title</span><span class="upo-preview-val upo-truncate" style="max-width: 75%;" title="${profile.title || ''}">${profile.title || '-'}</span></div>
                         <div class="upo-preview-row"><span class="upo-preview-key">Rate</span><span class="upo-preview-val">${profile.hourlyRate || '-'}</span></div>
                         
                         <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--upo-border);">
@@ -660,7 +695,7 @@
 
                         <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--upo-border);">
                             <span class="upo-preview-key" style="display:block; margin-bottom:8px; font-size: 11.5px; font-weight: 600;">Overview</span>
-                            <div style="font-size: 12px; color: var(--upo-fg); line-height: 1.6; border-radius: 6px; background: var(--upo-input); padding: 12px; border: 1px solid var(--upo-border);">
+                            <div class="upo-line-clamp" style="font-size: 12px; color: var(--upo-fg); line-height: 1.6; border-radius: 6px; background: var(--upo-input); padding: 12px; border: 1px solid var(--upo-border);" title="${(profile.overview || '').replace(/"/g, '&quot;')}">
                                 ${profile.overview ? profile.overview : '<span style="color:var(--upo-warn)">❌ Missing</span>'}
                             </div>
                         </div>
@@ -698,16 +733,7 @@
     });
 
     document.getElementById("upo-analyze-btn").addEventListener("click", () => {
-      // Include everything scraped
-      const contentString = `
-                Name: ${profile.name || "-"}
-                Title: ${profile.title || "-"}
-                Rate: ${profile.hourlyRate || "-"}
-                Skills: ${profile.skills || "-"}
-                Overview: ${profile.overview || "-"}
-                Raw Page Text Fallback: ${!profile.isLikelyProfile ? document.body.innerText.substring(0, 3000) : ""}
-            `;
-      runAnalysis(contentString);
+      runAnalysis(profile);
     });
   }
 
@@ -722,8 +748,21 @@
         `;
   }
 
-  function renderResultsScreen(data) {
+  function renderResultsScreen(data, profile) {
     const body = document.getElementById("upo-body");
+
+    const getSectionContent = (key) => {
+        switch(key.toLowerCase()) {
+            case 'title': return profile.title || '';
+            case 'overview': return profile.overview || '';
+            case 'skills': return profile.skills || '';
+            case 'rates': return profile.hourlyRate || '';
+            case 'portfolio': return 'Portfolio section not directly scraped yet.';
+            default: return '';
+        }
+    };
+
+    const getProfileContext = () => `${profile.name || 'Freelancer'} - ${profile.title || ''}`;
 
     const getScoreBadge = (score) => {
       const color = score >= 80 ? 'var(--upo-success)' : score >= 50 ? 'var(--upo-warn)' : 'var(--upo-error)';
@@ -731,67 +770,188 @@
       return `<span class="upo-section-badge" style="color:${color}; background:${bg}; border: 1px solid ${color}40">${score}/100</span>`;
     };
 
-    const sectionsHtml = Object.entries(data.sections || {}).map(([key, section]) => `
-            <div class="upo-section-card">
-                <div class="upo-section-header">
-                    <div class="upo-section-title" style="text-transform: capitalize;">${key}</div>
-                    ${getScoreBadge(section.score)}
+    function renderMain() {
+        body.innerHTML = `
+            <div class="upo-summary-card" id="upo-summary-header-card">
+                <div class="upo-summary-card-title upo-truncate" title="${profile.title || ''}">${profile.title || 'Profile Name'}</div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    ${getScoreBadge(data.overallScore)}
+                    <svg class="upo-accordion-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--upo-dim);">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </div>
-                <div class="upo-section-feedback">${section.feedback}</div>
+            </div>
+
+            <div class="upo-accordion" id="upo-overall-summary-acc" style="margin-bottom: 24px; border:none; background:transparent;">
+                <div class="upo-accordion-content">
+                    <div class="upo-accordion-inner" style="padding: 0 16px 16px 16px; font-size: 13px; color: var(--upo-fg); line-height: 1.6; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid var(--upo-border);">
+                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--upo-muted); margin-bottom: 8px; letter-spacing: 0.05em;">AI Profile Summary</div>
+                        ${data.summary}
+                    </div>
+                </div>
+            </div>
+
+            <div class="upo-accordion open" id="upo-improvements-accordion" style="margin-bottom: 20px;">
+                <div class="upo-accordion-header" onclick="document.getElementById('upo-improvements-accordion').classList.toggle('open')">
+                    <div class="upo-section-title" style="margin: 0;">Top Improvements</div>
+                    <svg class="upo-accordion-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+                <div class="upo-accordion-content">
+                    <div class="upo-accordion-inner" style="padding-top: 14px; border-top: 1px solid var(--upo-border);">
+                        <div class="upo-improve-list">
+                            ${(data.topImprovements || []).map(imp => `
+                                <div class="upo-improve-item">
+                                    <svg class="upo-improve-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    <div>${imp}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin: 20px 0 10px; font-size: 14px; font-weight: 800; color: var(--upo-fg);">Section Breakdown</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${Object.entries(data.sections || {}).map(([key, section]) => `
+                    <div class="upo-section-item" data-section="${key}">
+                        <span class="upo-section-item-name">${key}</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            ${getScoreBadge(section.score)}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--upo-dim);"><path d="M9 18l6-6-6-6"/></svg>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+
+            <button class="upo-btn upo-btn-outline" id="upo-reanalyze-btn" style="margin-top:30px">↺ Run Entire Analysis Again</button>
+        `;
+
+        document.getElementById("upo-summary-header-card").addEventListener("click", () => {
+             document.getElementById('upo-overall-summary-acc').classList.toggle('open');
+        });
+
+        document.getElementById("upo-reanalyze-btn").addEventListener("click", () => renderReadyScreen());
+        document.querySelectorAll(".upo-section-item").forEach(item => {
+            item.addEventListener("click", () => {
+                const key = item.getAttribute("data-section");
+                renderDetails(key, data.sections[key]);
+            });
+        });
+    }
+
+    function renderDetails(key, section) {
+        body.innerHTML = `
+            <button class="upo-back-btn" id="upo-back-to-main">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back to Results
+            </button>
+
+            <div style="display:flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 800; text-transform: capitalize; margin: 0;">${key}</h2>
+                    <p style="font-size: 13px; color: var(--upo-muted); margin-top: 4px;">Detailed AI Analysis</p>
+                </div>
+                ${getScoreBadge(section.score)}
+            </div>
+
+            <div class="upo-section-card" style="margin-bottom: 24px; padding: 18px; line-height: 1.6;">
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--upo-primary); margin-bottom: 8px; letter-spacing: 0.05em;">Critical Feedback</div>
+                <div style="font-size: 13.5px; color: var(--upo-fg);">${section.feedback}</div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--upo-muted); margin-bottom: 12px; letter-spacing: 0.05em;">Actionable Suggestions</div>
                 <ul class="upo-bullet-list">
                     ${section.suggestions.map(s => `<li>${s}</li>`).join('')}
                 </ul>
             </div>
-        `).join('');
 
-    const presentKeys = (data.keywords?.present || []).map(k => `<span class="upo-pill present">${k}</span>`).join('');
-    const missingKeys = (data.keywords?.missing || []).map(k => `<span class="upo-pill missing">+ ${k}</span>`).join('');
-
-    body.innerHTML = `
-            <div class="upo-score-hero">
-                <div>
-                    <div class="upo-overall-score" style="color: ${data.overallScore >= 80 ? 'var(--upo-success)' : 'var(--upo-warn)'}">${data.overallScore}</div>
-                    <div class="upo-overall-label">Overall Score</div>
-                </div>
-                <div style="font-size: 13px; color: var(--upo-fg); flex: 1; line-height: 1.5;">
-                    ${data.summary}
-                </div>
+            <div style="padding-top: 16px; border-top: 1px solid var(--upo-border);">
+                <button class="upo-btn upo-btn-primary upo-optimize-section-btn" data-section="${key.toLowerCase()}" style="height: 48px;">
+                    <span class="upo-optimize-btn-text">✨ Optimize & Rewrite This Section</span>
+                    <div class="upo-spinner-small" style="display:none;"></div>
+                </button>
+                <div class="upo-optimize-result" id="upo-optimize-result-${key.toLowerCase()}" style="display: none; margin-top: 20px;"></div>
             </div>
-
-            <div class="upo-section-card">
-                <div class="upo-section-title" style="margin-bottom: 12px;">Top Improvements</div>
-                <div class="upo-improve-list">
-                    ${(data.topImprovements || []).map(imp => `
-                        <div class="upo-improve-item">
-                            <svg class="upo-improve-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                            <div>${imp}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-
-            <div class="upo-section-card">
-                <div class="upo-section-title" style="margin-bottom: 8px;">Keyword Health</div>
-                ${missingKeys ? `<div style="font-size: 11px; color: var(--upo-muted); margin-top: 8px;">Missing / High Value</div>
-                <div class="upo-keyword-pills">${missingKeys}</div>` : ''}
-                ${presentKeys ? `<div style="font-size: 11px; color: var(--upo-muted); margin-top: 12px;">Detected</div>
-                <div class="upo-keyword-pills">${presentKeys}</div>` : ''}
-            </div>
-
-            <hr style="border:0; border-top: 1px solid var(--upo-border); margin: 24px 0;" />
-            
-            <h3 style="font-size: 16px; margin: 0 0 16px; color: var(--upo-fg);">Section Breakdown</h3>
-            ${sectionsHtml}
-
-            <button class="upo-btn upo-btn-outline" id="upo-reanalyze-btn" style="margin-top:20px">↺ Run Again</button>
         `;
 
-    document.getElementById("upo-reanalyze-btn").addEventListener("click", () => renderReadyScreen());
+        document.getElementById("upo-back-to-main").addEventListener("click", renderMain);
+        
+        // Attach optimize logic (reuse from existing code)
+        const optBtn = body.querySelector(".upo-optimize-section-btn");
+        optBtn.addEventListener("click", async () => {
+             const btn = optBtn;
+             const sectionKey = key.toLowerCase();
+             
+             const currentContent = getSectionContent(sectionKey);
+             const profileContext = getProfileContext();
+             const textSpan = btn.querySelector(".upo-optimize-btn-text");
+             const spinner = btn.querySelector(".upo-spinner-small");
+             const resultDiv = document.getElementById(`upo-optimize-result-${sectionKey}`);
+
+             try {
+                 btn.disabled = true;
+                 textSpan.style.display = "none";
+                 spinner.style.display = "block";
+                 
+                 const storage = await chrome.storage.local.get(["authToken"]);
+                 const res = await fetch(`${APP_URL}/extension-api/optimize-section`, {
+                     method: "POST",
+                     headers: {
+                         "Content-Type": "application/json",
+                         "Authorization": `Bearer ${storage.authToken}`
+                     },
+                     body: JSON.stringify({ section: sectionKey, currentContent, profileContext })
+                 });
+
+                 const json = await res.json();
+                 if (!res.ok) throw new Error(json.error || "Optimization failed");
+
+                 if (json.success && json.data) {
+                     const { improvedVersion, reasoning, tips } = json.data;
+                     resultDiv.style.display = "block";
+                     resultDiv.innerHTML = `
+                         <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--upo-primary); margin-bottom: 8px;">Optimized & Optimized Version</div>
+                         <div style="background: var(--upo-input); border: 1px solid var(--upo-primary-border); padding: 14px; border-radius: 8px; color: var(--upo-fg); line-height: 1.6; margin-bottom: 16px; font-size: 13.5px; white-space: pre-wrap;">${improvedVersion}</div>
+                         <div style="font-size: 12px; color: var(--upo-dim); line-height: 1.5; margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 6px;">
+                             <strong style="color: var(--upo-fg); display:block; margin-bottom: 4px;">Why it's better:</strong> ${reasoning}
+                         </div>
+                         ${tips?.length ? `
+                             <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--upo-muted); margin-bottom: 8px;">Next Steps</div>
+                             <ul class="upo-bullet-list" style="font-size: 12px; color: var(--upo-muted);">
+                                 ${tips.map(t => `<li style="margin-bottom: 4px;">${t}</li>`).join('')}
+                             </ul>
+                         ` : ''}
+                     `;
+                 }
+             } catch (error) {
+                 resultDiv.style.display = "block";
+                 resultDiv.innerHTML = `<div class="upo-error-msg">${error.message}</div>`;
+             } finally {
+                 btn.disabled = false;
+                 textSpan.style.display = "block";
+                 spinner.style.display = "none";
+             }
+        });
+    }
+
+    renderMain();
   }
 
   // ── API Call Logic ───────────────────────────────────────────────────────────
-  async function runAnalysis(profileContent) {
+  async function runAnalysis(profile) {
     renderLoadingScreen();
+
+    const profileContent = `
+                Name: ${profile.name || "-"}
+                Title: ${profile.title || "-"}
+                Rate: ${profile.hourlyRate || "-"}
+                Skills: ${profile.skills || "-"}
+                Overview: ${profile.overview || "-"}
+                Raw Page Text Fallback: ${!profile.isLikelyProfile ? document.body.innerText.substring(0, 3000) : ""}
+            `;
 
     try {
       const storage = await chrome.storage.local.get(["authToken"]);
@@ -816,7 +976,7 @@
       }
 
       if (json.success && json.data) {
-        renderResultsScreen(json.data);
+        renderResultsScreen(json.data, profile);
       } else {
         throw new Error("Invalid response format received from API");
       }

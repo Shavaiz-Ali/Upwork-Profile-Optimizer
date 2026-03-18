@@ -111,6 +111,8 @@ export async function POST(req: Request) {
             })
             .lean();
 
+
+        console.log("aiModelDoc", aiModelDoc);
         if (!aiModelDoc) {
             return NextResponse.json(
                 {
@@ -122,9 +124,9 @@ export async function POST(req: Request) {
         }
 
         const { modelId, settings, apiKeyId } = aiModelDoc as any;
-        
+
         if (!apiKeyId) {
-             return NextResponse.json(
+            return NextResponse.json(
                 { error: "Your AI model configuration is missing an API Key. Please update it in your dashboard." },
                 { status: 422 }
             );
@@ -214,6 +216,9 @@ export async function POST(req: Request) {
         // =========================
         // 8. RESPONSE
         // =========================
+
+        console.log(object);
+
         return NextResponse.json({
             success: true,
             data: object,
