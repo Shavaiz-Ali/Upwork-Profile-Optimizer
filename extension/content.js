@@ -966,7 +966,10 @@
           "Content-Type": "application/json",
           "Authorization": `Bearer ${storage.authToken}`
         },
-        body: JSON.stringify({ profileContent })
+        body: JSON.stringify({ 
+          profileContent,
+          profile // Send the structured profile object
+        })
       });
 
       const json = await res.json();

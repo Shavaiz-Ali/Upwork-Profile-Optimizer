@@ -6,11 +6,19 @@ import { authOptions } from "@/lib/auth";
 import connectToDatabase from "@/lib/db";
 import AiModel from "@/lib/models/ai-model.model";
 import UserApiKey from "@/lib/models/user-api-key.model";
+import Analysis from "@/lib/models/analysis.model";
 import { getProviderModel } from "@/lib/ai/provider";
 
 /** Shape of the profile analysis sent from the browser extension */
 interface AnalyzeRequest {
     profileContent: string;
+    profile?: {
+        name?: string;
+        title?: string;
+        hourlyRate?: string;
+        overview?: string;
+        skills?: string;
+    }
 }
 
 const ProfileAnalysisSchema = z.object({
@@ -214,17 +222,31 @@ export async function POST(req: Request) {
         });
 
         // =========================
-        // 8. RESPONSE
+        // 8. PERSIST
         // =========================
+        try {
+            const profileName = body.profile?.name || "Unknown";
+            const profileTitle = body.profile?.title || "Unknown";
 
-        console.log(object);
+            await Analysis.create({
+                userId,
+                profileName,
+                profileTitle,
+                ...object
+            });
+        } catch (dbError) {
+            console.error("Failed to save analysis to DB:", dbError);
+        }
 
+        // =========================
+        // 9. RESPONSE
+        // =========================
         return NextResponse.json({
             success: true,
             data: object,
         });
     } catch (error: any) {
-
+        console.error("Analyze Error:", error);
         return NextResponse.json(
             {
                 error: error.message || "Internal server error",
