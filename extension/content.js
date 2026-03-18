@@ -5,560 +5,667 @@
 
   if (document.getElementById("upo-root")) return;
 
-  // Create the extension root just as a marker
+  // ── Config ─────────────────────────────────────────────────────────────────
+  const APP_URL = "http://localhost:3000";
+
+  // ── Inject fonts and base theme styling ────────────────────────────────────
+  const styleId = "upo-theme-style";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+            @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;500;600&display=swap');
+            
+            :root {
+                --upo-bg:       #1c2132;
+                --upo-card:     #252d42;
+                --upo-card2:    #2b3450;
+                --upo-input:    #222a3e;
+                --upo-border:   #3a4460;
+                --upo-fg:       #eaeef8;
+                --upo-muted:    #8a93a8;
+                --upo-dim:      #4e5a78;
+
+                --upo-primary:        #6d5de6;
+                --upo-primary-hover:  #5c4dce;
+                --upo-primary-ring:   rgba(109, 93, 230, 0.28);
+                --upo-primary-sub:    rgba(109, 93, 230, 0.10);
+                --upo-primary-border: rgba(109, 93, 230, 0.25);
+
+                --upo-error:        #e36248;
+                --upo-error-sub:    rgba(227, 98, 72, 0.10);
+                
+                --upo-warn:         #f59e0b;
+                --upo-warn-sub:     rgba(245, 158, 11, 0.10);
+
+                --upo-success:      #22c55e;
+                --upo-success-sub:  rgba(34, 197, 94, 0.10);
+
+                --upo-radius: 10px;
+                --upo-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                --upo-font: 'Nunito', system-ui, sans-serif;
+            }
+
+            /* Reset within UPO scope */
+            #upo-panel *, #upo-fab * {
+                box-sizing: border-box;
+                font-family: var(--upo-font);
+            }
+
+            /* FAB */
+            #upo-fab {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                z-index: 999999;
+                background: linear-gradient(135deg, var(--upo-primary), var(--upo-primary-hover));
+                color: #fff;
+                box-shadow: 0 4px 20px var(--upo-primary-ring);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 12px 20px 12px 18px;
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 24px;
+                font-family: var(--upo-font);
+                font-weight: 800;
+                font-size: 14px;
+                cursor: pointer;
+                transition: transform 0.2s cubic-bezier(0.16,1,0.3,1), box-shadow 0.2s, background 0.2s;
+            }
+            #upo-fab:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 6px 24px var(--upo-primary-ring); }
+            #upo-fab:active { transform: translateY(0) scale(0.98); }
+
+            /* Panel */
+            #upo-panel {
+                position: fixed;
+                bottom: 84px;
+                right: 24px;
+                z-index: 999999;
+                width: 380px;
+                max-height: calc(100vh - 120px);
+                background: var(--upo-bg);
+                color: var(--upo-fg);
+                border-radius: var(--upo-radius);
+                box-shadow: var(--upo-shadow);
+                border: 1px solid var(--upo-border);
+                display: flex;
+                flex-direction: column;
+                transform-origin: bottom right;
+                transform: scale(0.95);
+                opacity: 0;
+                pointer-events: none;
+                transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), opacity 0.2s;
+            }
+            #upo-panel.open {
+                transform: scale(1);
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            /* Header */
+            .upo-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 18px;
+                background: var(--upo-card);
+                border-bottom: 1px solid var(--upo-border);
+                border-radius: var(--upo-radius) var(--upo-radius) 0 0;
+            }
+            .upo-logo { display: flex; align-items: center; gap: 10px; }
+            .upo-logo-icon {
+                width: 40px; height: 40px;
+                border-radius: 8px;
+                background: var(--upo-primary-sub);
+                border: 1px solid var(--upo-primary-border);
+                display: flex; align-items: center; justify-content: center;
+                color: var(--upo-primary);
+            }
+            .upo-logo-text { font-size: 14px; font-weight: 800; }
+            .upo-badge {
+                font-size: 10px; font-weight: 700; padding: 3px 9px;
+                border-radius: 20px; background: var(--upo-primary-sub);
+                border: 1px solid var(--upo-primary-border); color: var(--upo-primary);
+            }
+            .upo-close {
+                background: none; border: none; color: var(--upo-muted);
+                cursor: pointer; padding: 4px; border-radius: 6px;
+                transition: background 0.15s, color 0.15s;
+                margin-left: 8px;
+            }
+            .upo-close:hover { background: var(--upo-card2); color: var(--upo-fg); }
+
+            /* Body ScrollArea */
+            .upo-body {
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px;
+                font-size: 13.5px;
+                line-height: 1.5;
+                display: flex;
+                flex-direction: column;
+            }
+            .upo-body::-webkit-scrollbar { width: 6px; }
+            .upo-body::-webkit-scrollbar-thumb { background: var(--upo-border); border-radius: 4px; }
+
+            /* Forms / Buttons */
+            .upo-input-wrap { position: relative; margin-bottom: 4px; }
+            .upo-input-icon {
+                position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+                color: var(--upo-dim); pointer-events: none; display: flex;
+            }
+            .upo-input {
+                width: 100%; padding: 10px 12px 10px 36px;
+                background: var(--upo-input); border: 1px solid var(--upo-border);
+                border-radius: var(--upo-radius); color: var(--upo-fg);
+                font-family: var(--upo-font); font-size: 13.5px; font-weight: 500;
+                outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+            }
+            .upo-input:focus { border-color: var(--upo-primary); box-shadow: 0 0 0 3px var(--upo-primary-ring); }
+            
+            .upo-btn {
+                width: 100%; padding: 11px 16px; border: none; border-radius: var(--upo-radius);
+                font-weight: 700; font-size: 13.5px; cursor: pointer;
+                transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+                display: flex; align-items: center; justify-content: center; gap: 8px;
+            }
+            .upo-btn:active:not(:disabled) { transform: scale(0.98); }
+            .upo-btn-primary { background: var(--upo-primary); color: #fff; }
+            .upo-btn-primary:hover:not(:disabled) { background: var(--upo-primary-hover); box-shadow: 0 4px 20px var(--upo-primary-ring); }
+            .upo-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+            .upo-btn-outline { background: transparent; color: var(--upo-muted); border: 1px solid var(--upo-border); }
+            .upo-btn-outline:hover { background: var(--upo-primary-sub); color: var(--upo-primary); border-color: var(--upo-primary-border); }
+
+            .upo-error-msg {
+                background: var(--upo-error-sub); border: 1px solid var(--upo-error);
+                color: var(--upo-error); padding: 10px; border-radius: var(--upo-radius);
+                font-size: 12px; font-weight: 600; display: flex; align-items: flex-start; gap: 8px;
+                margin-bottom: 16px; animation: upoFadeIn 0.3s forwards;
+            }
+
+            .upo-spinner-small {
+                width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3);
+                border-top-color: #fff; border-radius: 50%;
+                animation: upoSpin 0.6s linear infinite;
+            }
+            .upo-spinner-large {
+                width: 36px; height: 36px; border: 3px solid var(--upo-primary-sub);
+                border-top-color: var(--upo-primary); border-radius: 50%;
+                animation: upoSpin 0.8s linear infinite; margin: 0 auto 16px;
+            }
+            @keyframes upoSpin { to { transform: rotate(360deg); } }
+            @keyframes upoFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+            /* Login specific */
+            .upo-login-hero { text-align: center; margin-bottom: 24px; }
+            .upo-hero-orb {
+                width: 50px; height: 50px; border-radius: 14px; background: var(--upo-primary-sub);
+                border: 1px solid var(--upo-primary-border); color: var(--upo-primary);
+                display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+            }
+            .upo-login-hero h1 { font-size: 17px; font-weight: 800; margin: 0 0 6px; }
+            .upo-login-hero p { font-size: 12.5px; color: var(--upo-muted); margin: 0; }
+            .upo-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--upo-muted); margin-bottom: 6px; }
+
+            /* Ready to Analyze Screen */
+            .upo-preview {
+                background: var(--upo-card2); border: 1px solid var(--upo-border);
+                border-radius: var(--upo-radius); padding: 14px; margin-bottom: 20px;
+            }
+            .upo-preview-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--upo-muted); letter-spacing: 0.05em; margin-bottom: 10px; display: flex; justify-content: space-between; }
+            .upo-preview-row { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px; }
+            .upo-preview-row:last-child { margin-bottom: 0; }
+            .upo-preview-key { color: var(--upo-dim); }
+            .upo-preview-val { color: var(--upo-fg); font-weight: 600; text-align: right; max-width: 65%; word-break: break-word; }
+            .upo-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+            /* Results view components */
+            .upo-score-hero {
+                display: flex; gap: 16px; align-items: center; padding: 16px;
+                background: linear-gradient(135deg, var(--upo-card2), var(--upo-card));
+                border: 1px solid var(--upo-border); border-radius: var(--upo-radius); margin-bottom: 20px;
+            }
+            .upo-overall-score { font-size: 36px; font-weight: 800; line-height: 1; }
+            .upo-overall-label { font-size: 11px; color: var(--upo-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-top: 4px; }
+            
+            .upo-section-card {
+                background: var(--upo-card2); border: 1px solid var(--upo-border);
+                border-radius: var(--upo-radius); padding: 16px; margin-bottom: 12px;
+            }
+            .upo-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+            .upo-section-title { font-size: 15px; font-weight: 700; color: var(--upo-fg); display: flex; align-items: center; gap: 6px; }
+            .upo-section-badge { padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+            .upo-section-feedback { font-size: 13px; color: var(--upo-muted); margin-bottom: 12px; }
+            
+            .upo-bullet-list { margin: 0; padding: 0 0 0 16px; color: var(--upo-fg); font-size: 13px; }
+            .upo-bullet-list li { margin-bottom: 6px; line-height: 1.5; }
+
+            .upo-keyword-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+            .upo-pill { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid; }
+            .upo-pill.present { background: var(--upo-success-sub); color: var(--upo-success); border-color: rgba(34, 197, 94, 0.3); }
+            .upo-pill.missing { background: var(--upo-warn-sub); color: var(--upo-warn); border-color: rgba(245, 158, 11, 0.3); }
+
+            .upo-improve-list { display: flex; flex-direction: column; gap: 8px; }
+            .upo-improve-item { 
+                background: var(--upo-bg); border: 1px solid var(--upo-border); 
+                padding: 10px 12px; border-radius: 8px; font-size: 12.5px;
+                display: flex; gap: 10px; line-height: 1.5;
+            }
+            .upo-improve-icon { color: var(--upo-primary); flex-shrink: 0; margin-top: 2px; }
+        `;
+    document.head.appendChild(style);
+  }
+
+  // ── Create the extension root 
   const root = document.createElement("div");
   root.id = "upo-root";
   document.body.appendChild(root);
 
-  // ── Scrape profile data from the page ──────────────────────────────────────
+  // ── Enhanced Profile Scraper ────────────────────────────────────────────────
   function scrapeProfile() {
-    // Limit query scope to the profile container if it exists
     const scope = document.querySelector(".freelancer-profile") || document;
 
     const get = (selectors) => {
       for (const sel of selectors) {
-        const el = scope.querySelector(sel);
-        if (el?.innerText?.trim()) return el.innerText.trim();
+        const els = scope.querySelectorAll(sel);
+        for (const el of els) {
+          if (el?.innerText?.trim() && !el.closest('nav') && !el.closest('footer')) {
+            return el.innerText.trim();
+          }
+        }
       }
       return null;
     };
 
-    const name = get([
-      '[data-test="freelancer-name"]',
-      ".identity-name",
-      "h1",
-    ]);
+    const name = get(['[data-test="freelancer-name"]', ".identity-name", 'h1[itemprop="name"]', "h1"]);
+    const title = get(['[data-test="title"]', ".freelancer-title", ".title", "h2"]);
 
-    const title = get([
-      '[data-test="title"]',
-      ".title",
-      ".freelancer-title",
-      "h2",
-    ]);
-
-    // Hourly rate - use optional chaining + regex pattern matching as fallback
+    // Find hourly rate robustly
     let hourlyRate = get(['[data-test="hourly-rate"]', ".rate"]);
     if (!hourlyRate) {
-      scope.querySelectorAll("*").forEach((el) => {
-        if (!hourlyRate && el.children.length === 0) {
+      const allElements = scope.querySelectorAll("div, span, p");
+      for (const el of allElements) {
+        if (el.children.length === 0) {
           const text = el.innerText?.trim();
-          if (text && /^\$\d+(\.\d+)?\/hr$/i.test(text)) {
+          if (text && /^\$\d+(\.\d+)?(\/hr)?$/i.test(text)) {
             hourlyRate = text;
+            break;
           }
         }
-      });
-    }
-    // Additional normalization requested by user:
-    hourlyRate = hourlyRate?.match(/\$\d+(\.\d+)?/)?.[0] ?? null;
-
-    // Overview/Bio
-    let overview = null;
-    const bioSelectors = [
-      '[data-test="overview"]',
-      '[data-test="description"]',
-      ".overview",
-      '[class*="overview"]',
-      '[class*="bio"]',
-    ];
-    for (const sel of bioSelectors) {
-      const el = scope.querySelector(sel);
-      if (el?.innerText?.trim().length > 80) {
-        overview = el.innerText.trim();
-        break;
       }
     }
+    hourlyRate = hourlyRate?.match(/\$\d+(\.\d+)?/)?.[0] ?? null;
 
-    // Skills
-    const skillEls = scope.querySelectorAll(
-      '[data-test="skill"] a, .skill-badge, [class*="skill"] a'
-    );
-    const skills = Array.from(skillEls)
-      .map((el) => el.innerText?.trim()?.replace(/[\n\r]+/g, ' '))
-      .filter(Boolean)
-      .slice(0, 25);
+    // Long text for overview
+    let overview = null;
+    const bioSelectors = ['[data-test="overview"]', '[data-test="description"]', ".overview", '[class*="overview"]', '[class*="bio"]', 'article', 'main p'];
+    for (const sel of bioSelectors) {
+      const els = scope.querySelectorAll(sel);
+      for (const el of els) {
+        if (el?.innerText?.trim().length > 60) {
+          overview = el.innerText.trim();
+          break;
+        }
+      }
+      if (overview) break;
+    }
 
-    // Portfolio
-    const portfolioEls = scope.querySelectorAll(
-      '[data-test="portfolio-item"], [class*="portfolio"] [class*="item"]'
-    );
-    const portfolioCount = portfolioEls.length;
-    const portfolioDescriptions = Array.from(portfolioEls)
-      .map((el) => el.innerText?.trim()?.replace(/[\n\r]+/g, ' ')?.slice(0, 120))
-      .filter(Boolean)
-      .slice(0, 5);
-
-    // Stats
-    const jobSuccess = get([
-      '[data-test="job-success"]',
-      '[class*="jobSuccess"]',
-    ]);
-    const totalEarnings = get([
-      '[data-test="total-earnings"]',
-      '[class*="earnings"]',
-    ]);
-    const topRated = !!scope.querySelector(
-      '[data-test="top-rated"], [class*="topRated"]'
-    );
+    const skillEls = scope.querySelectorAll('[data-test="skill"] a, .skill-badge, [class*="skill"] a, .skills-list li, span[data-cy="skill"]');
+    const skills = Array.from(skillEls).map((el) => el.innerText?.trim()?.replace(/[\n\r]+/g, ' ')).filter(Boolean).slice(0, 25);
 
     return {
       name,
       title,
       hourlyRate,
       overview,
-      skills,
-      portfolioCount,
-      portfolioDescriptions,
-      jobSuccess,
-      totalEarnings,
-      topRated,
+      skills: skills.join(", "),
+      isLikelyProfile: !!(name || title || overview || skills.length > 0)
     };
   }
 
-  // ── Build FAB ──────────────────────────────────────────────────────────────
+  // ── Build UI elements ──────────────────────────────────────────────────────
   const fab = document.createElement("div");
   fab.id = "upo-fab";
   fab.innerHTML = `
-    <div class="upo-fab-dot"></div>
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-    </svg>
-    Optimize Profile
-  `;
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+        Optimize Profile
+    `;
   document.body.appendChild(fab);
 
-  // ── Build Panel ────────────────────────────────────────────────────────────
   const panel = document.createElement("div");
   panel.id = "upo-panel";
   panel.innerHTML = `
-    <div class="upo-header">
-      <div class="upo-logo">
-        <div class="upo-logo-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
+        <div class="upo-header">
+            <div class="upo-logo">
+                <div class="upo-logo-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                </div>
+                <span class="upo-logo-text">Profile Optimizer
+                    <span class="upo-badge" style="display:block; margin-top: 1px;">AI Powered</span>
+                </span>
+            </div>
+            <div style="display: flex;">
+                <button class="upo-close" id="upo-dash-btn" title="Open Settings">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+                <button class="upo-close" id="upo-close-btn" title="Close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-        <span class="upo-logo-text">Profile Optimizer</span>
-      </div>
-      <button class="upo-close" id="upo-close-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div class="upo-body" id="upo-body">
-      <!-- Content injected dynamically here, rather than rewriting the whole outer shell -->
-    </div>
-  `;
+        <div class="upo-body" id="upo-body">
+            <!-- Content injected dynamically -->
+        </div>
+    `;
   document.body.appendChild(panel);
 
   let panelOpen = false;
 
-  // Restore previous panel state
-  chrome.storage.local.get(["panelOpen"], (res) => {
-    if (res.panelOpen) {
-      panelOpen = true;
-      panel.classList.add("open");
-      const profile = scrapeProfile();
-      showApiKeyScreen(profile);
-    }
-  });
+  // ── UI Rendering Logic ──────────────────────────────────────────────────────
 
-  // ── Screens ────────────────────────────────────────────────────────────────
-  function showApiKeyScreen(profileData) {
+  function renderLoginScreen(errorMsg = null) {
     const body = document.getElementById("upo-body");
-    const hasOverview = profileData.overview && profileData.overview.length > 20;
+    body.innerHTML = `
+            <div class="upo-login-hero" style="margin-top: 10px;">
+                <div class="upo-hero-orb">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <h1>Sign in to continue</h1>
+                <p>Enter your email to access your API keys and models.</p>
+            </div>
+
+            ${errorMsg ? `<div class="upo-error-msg">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <div>${errorMsg}</div>
+            </div>` : ''}
+
+            <form id="upoLoginForm" style="margin-bottom: 20px;">
+                <label class="upo-label">Email address</label>
+                <div class="upo-input-wrap">
+                    <span class="upo-input-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                    </span>
+                    <input type="email" class="upo-input" id="upoEmailInput" placeholder="you@example.com" required />
+                </div>
+                <button type="submit" class="upo-btn upo-btn-primary" id="upoLoginBtn" style="margin-top: 16px;">
+                    <span id="upoLoginText">Sign In</span>
+                    <div class="upo-spinner-small" id="upoLoginSpinner" style="display:none;"></div>
+                </button>
+            </form>
+
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <div style="flex:1;height:1px;background:var(--upo-border);"></div>
+                <span style="font-size:11px;color:var(--upo-dim);">New here?</span>
+                <div style="flex:1;height:1px;background:var(--upo-border);"></div>
+            </div>
+
+            <button type="button" class="upo-btn upo-btn-outline" id="upoCreateAccountBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                Create an account
+            </button>
+        `;
+
+    document.getElementById("upoCreateAccountBtn").addEventListener("click", () => {
+      window.open(`${APP_URL}/signup`, "_blank");
+    });
+
+    document.getElementById("upoLoginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("upoEmailInput").value.trim();
+      if (!email) return;
+
+      const btn = document.getElementById("upoLoginBtn");
+      const text = document.getElementById("upoLoginText");
+      const spinner = document.getElementById("upoLoginSpinner");
+
+      try {
+        btn.disabled = true;
+        text.style.display = "none";
+        spinner.style.display = "block";
+
+        const res = await fetch(`${APP_URL}/extension-api/me?email=${encodeURIComponent(email)}`);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || "Failed to sign in.");
+
+        await chrome.storage.local.set({ authToken: data.token, userEmail: data.email });
+        renderReadyScreen();
+      } catch (err) {
+        renderLoginScreen(err.message);
+      }
+    });
+  }
+
+  function renderReadyScreen(errorMsg = null) {
+    const body = document.getElementById("upo-body");
+    const profile = scrapeProfile();
 
     body.innerHTML = `
-      <div class="upo-welcome">
-        <div class="upo-welcome-emoji">⚡</div>
-        <h2>AI Profile Analysis</h2>
-        <p>Get a detailed score, AI rewrites, skills gap analysis, and rate suggestions for your Upwork profile.</p>
-      </div>
+            <div style="margin-bottom: 20px;">
+                <h3 style="font-size: 16px; margin: 0 0 6px;">Ready to Analyze</h3>
+                <p style="font-size: 12.5px; color: var(--upo-muted); margin: 0;">We will use your active AI Model configuration from the dashboard.</p>
+            </div>
 
-      ${hasOverview ? `
-      <div class="upo-preview">
-        <div class="upo-preview-label">Detected Profile Data</div>
-        ${profileData.name ? `<div class="upo-preview-row"><span class="upo-preview-key">Name</span><span class="upo-preview-val">${profileData.name}</span></div>` : ""}
-        ${profileData.title ? `<div class="upo-preview-row"><span class="upo-preview-key">Headline</span><span class="upo-preview-val truncate">${profileData.title}</span></div>` : ""}
-        ${profileData.hourlyRate ? `<div class="upo-preview-row"><span class="upo-preview-key">Rate</span><span class="upo-preview-val">${profileData.hourlyRate}</span></div>` : ""}
-        ${profileData.skills?.length ? `<div class="upo-preview-row"><span class="upo-preview-key">Skills</span><span class="upo-preview-val">${profileData.skills.slice(0, 5).join(", ")}${profileData.skills.length > 5 ? "..." : ""}</span></div>` : ""}
-      </div>` : `
-      <div class="upo-preview">
-        <div class="upo-preview-label">Profile Data</div>
-        <div class="upo-tip" style="margin:0">Could not auto-detect all data. AI will analyze what's available.</div>
-      </div>`}
+            <div class="upo-preview" style="border-color: ${!profile.isLikelyProfile ? 'var(--upo-warn)' : 'var(--upo-border)'}">
+                <div class="upo-preview-label">
+                    <span>Detected Profile Context</span>
+                    ${!profile.isLikelyProfile ? '<span style="color:var(--upo-warn)">⚠️ Low Confidence</span>' : ''}
+                </div>
+                <div class="upo-preview-row"><span class="upo-preview-key">Name</span><span class="upo-preview-val upo-truncate">${profile.name || '-'}</span></div>
+                <div class="upo-preview-row"><span class="upo-preview-key">Role</span><span class="upo-preview-val upo-truncate">${profile.title || '-'}</span></div>
+                <div class="upo-preview-row"><span class="upo-preview-key">Rate</span><span class="upo-preview-val">${profile.hourlyRate || '-'}</span></div>
+                <div class="upo-preview-row"><span class="upo-preview-key">Overview</span><span class="upo-preview-val">${profile.overview ? '✓ Detected' : '❌ Missing'}</span></div>
+            </div>
 
-      <div class="upo-field">
-        <label>Anthropic API Key</label>
-        <input type="password" id="upo-key-input" placeholder="sk-ant-api03-..." />
-        <div class="upo-hint">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
-          Stored locally in browser. Never shared.
-        </div>
-      </div>
+            ${!profile.isLikelyProfile ? `
+                <div style="font-size: 12px; color: var(--upo-warn); margin-bottom: 16px; background: var(--upo-warn-sub); padding: 10px; border-radius: var(--upo-radius);">
+                    We couldn't detect a full Upwork profile on this page. Analysis quality may be degraded.
+                </div>
+            ` : ''}
 
-      <div id="upo-error-wrap"></div>
+            ${errorMsg ? `<div class="upo-error-msg">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <div>${errorMsg}</div>
+            </div>` : ''}
 
-      <button class="upo-btn-primary" id="upo-analyze-btn">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-        </svg>
-        Analyze My Profile
-      </button>
-    `;
+            <button class="upo-btn upo-btn-primary" id="upo-analyze-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Analyze Profile
+            </button>
 
-    // Pre-fill saved key
-    chrome.storage.local.get(["apiKey"], (res) => {
-      const input = document.getElementById("upo-key-input");
-      if (res.apiKey && input) input.value = res.apiKey;
+            <button class="upo-btn upo-btn-outline" id="upo-logout-btn" style="margin-top: 10px; border:none; background: transparent; font-size: 12px;">Sign Out</button>
+        `;
+
+    document.getElementById("upo-logout-btn").addEventListener("click", async () => {
+      await chrome.storage.local.remove(["authToken", "userEmail"]);
+      renderLoginScreen();
     });
 
     document.getElementById("upo-analyze-btn").addEventListener("click", () => {
-      const key = document.getElementById("upo-key-input")?.value?.trim();
-      if (!key) {
-        showError("Please enter your Anthropic API key.");
+      // Include everything scraped
+      const contentString = `
+                Name: ${profile.name || "-"}
+                Title: ${profile.title || "-"}
+                Rate: ${profile.hourlyRate || "-"}
+                Skills: ${profile.skills || "-"}
+                Overview: ${profile.overview || "-"}
+                Raw Page Text Fallback: ${!profile.isLikelyProfile ? document.body.innerText.substring(0, 3000) : ""}
+            `;
+      runAnalysis(contentString);
+    });
+  }
+
+  function renderLoadingScreen() {
+    document.getElementById("upo-body").innerHTML = `
+            <div class="upo-loading" style="padding: 40px 0;">
+                <div class="upo-spinner-large"></div>
+                <h3>Running AI Analysis</h3>
+                <p>Generating expert recommendations via API...</p>
+                <p style="font-size:11px; margin-top: 8px;">Make sure your dashboard API key is active.</p>
+            </div>
+        `;
+  }
+
+  function renderResultsScreen(data) {
+    const body = document.getElementById("upo-body");
+
+    const getScoreBadge = (score) => {
+      const color = score >= 80 ? 'var(--upo-success)' : score >= 50 ? 'var(--upo-warn)' : 'var(--upo-error)';
+      const bg = score >= 80 ? 'var(--upo-success-sub)' : score >= 50 ? 'var(--upo-warn-sub)' : 'var(--upo-error-sub)';
+      return `<span class="upo-section-badge" style="color:${color}; background:${bg}; border: 1px solid ${color}40">${score}/100</span>`;
+    };
+
+    const sectionsHtml = Object.entries(data.sections || {}).map(([key, section]) => `
+            <div class="upo-section-card">
+                <div class="upo-section-header">
+                    <div class="upo-section-title" style="text-transform: capitalize;">${key}</div>
+                    ${getScoreBadge(section.score)}
+                </div>
+                <div class="upo-section-feedback">${section.feedback}</div>
+                <ul class="upo-bullet-list">
+                    ${section.suggestions.map(s => `<li>${s}</li>`).join('')}
+                </ul>
+            </div>
+        `).join('');
+
+    const presentKeys = (data.keywords?.present || []).map(k => `<span class="upo-pill present">${k}</span>`).join('');
+    const missingKeys = (data.keywords?.missing || []).map(k => `<span class="upo-pill missing">+ ${k}</span>`).join('');
+
+    body.innerHTML = `
+            <div class="upo-score-hero">
+                <div>
+                    <div class="upo-overall-score" style="color: ${data.overallScore >= 80 ? 'var(--upo-success)' : 'var(--upo-warn)'}">${data.overallScore}</div>
+                    <div class="upo-overall-label">Overall Score</div>
+                </div>
+                <div style="font-size: 13px; color: var(--upo-fg); flex: 1; line-height: 1.5;">
+                    ${data.summary}
+                </div>
+            </div>
+
+            <div class="upo-section-card">
+                <div class="upo-section-title" style="margin-bottom: 12px;">Top Improvements</div>
+                <div class="upo-improve-list">
+                    ${(data.topImprovements || []).map(imp => `
+                        <div class="upo-improve-item">
+                            <svg class="upo-improve-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            <div>${imp}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="upo-section-card">
+                <div class="upo-section-title" style="margin-bottom: 8px;">Keyword Health</div>
+                ${missingKeys ? `<div style="font-size: 11px; color: var(--upo-muted); margin-top: 8px;">Missing / High Value</div>
+                <div class="upo-keyword-pills">${missingKeys}</div>` : ''}
+                ${presentKeys ? `<div style="font-size: 11px; color: var(--upo-muted); margin-top: 12px;">Detected</div>
+                <div class="upo-keyword-pills">${presentKeys}</div>` : ''}
+            </div>
+
+            <hr style="border:0; border-top: 1px solid var(--upo-border); margin: 24px 0;" />
+            
+            <h3 style="font-size: 16px; margin: 0 0 16px; color: var(--upo-fg);">Section Breakdown</h3>
+            ${sectionsHtml}
+
+            <button class="upo-btn upo-btn-outline" id="upo-reanalyze-btn" style="margin-top:20px">↺ Run Again</button>
+        `;
+
+    document.getElementById("upo-reanalyze-btn").addEventListener("click", () => renderReadyScreen());
+  }
+
+  // ── API Call Logic ───────────────────────────────────────────────────────────
+  async function runAnalysis(profileContent) {
+    renderLoadingScreen();
+
+    try {
+      const storage = await chrome.storage.local.get(["authToken"]);
+      if (!storage.authToken) {
+        renderLoginScreen();
         return;
       }
-      chrome.storage.local.set({ apiKey: key });
-      runAnalysis(profileData, key);
-    });
-  }
 
-  function showLoadingScreen() {
-    const body = document.getElementById("upo-body");
-    body.innerHTML = `
-      <div class="upo-loading">
-        <div class="upo-spinner-wrap">
-          <div class="upo-spinner"></div>
-          <div class="upo-spinner-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
-          </div>
-        </div>
-        <h3>Analyzing Your Profile</h3>
-        <p>Claude is reviewing every section of your profile...</p>
-        <p style="font-size:11px;color:#30363d;margin-top:4px">This may take 10–20 seconds</p>
-        <div id="upo-progressive-updates" style="display:flex;flex-direction:column;gap:4px;margin-top:10px;text-align:left;width:100%;">
-           <!-- Progressive steps will be pushed here -->
-        </div>
-      </div>
-    `;
-  }
-
-  // Exported so background can call it to inject intermediate stream chunks
-  window.upoUpdateProgress = function (message) {
-    const log = document.getElementById("upo-progressive-updates");
-    if (log) {
-      log.innerHTML += `<div style="font-size:11px;color:#22c55e;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg> ${message}</div>`;
-    }
-  };
-
-  function showResultsScreen(data) {
-    const body = document.getElementById("upo-body");
-
-    // Safety Fallbacks in case LLM misses any keys
-    const over = data.overallScore ?? 0;
-    const hd = data.scoreBreakdown?.headline ?? 0;
-    const bd = data.scoreBreakdown?.bio ?? 0;
-    const sk = data.scoreBreakdown?.skills ?? 0;
-    const pf = data.scoreBreakdown?.portfolio ?? 0;
-    const rt = data.scoreBreakdown?.rate ?? 0;
-
-    const scoreColor = over >= 80 ? "#22c55e" : over >= 60 ? "#f59e0b" : over >= 40 ? "#f97316" : "#ef4444";
-    const circumference = 2 * Math.PI * 42;
-    const offset = circumference * (1 - over / 100);
-
-    body.innerHTML = `
-      <!-- Score Hero -->
-      <div class="upo-score-hero">
-        <div class="upo-score-top">
-          <div class="upo-score-ring-wrap">
-            <svg width="100" height="100" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="42" fill="none" stroke="#21262d" stroke-width="8"/>
-              <circle cx="50" cy="50" r="42" fill="none" stroke="${scoreColor}" stroke-width="8"
-                stroke-linecap="round"
-                stroke-dasharray="${circumference}"
-                stroke-dashoffset="${offset}"
-                transform="rotate(-90 50 50)"
-                style="transition: stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1);filter:drop-shadow(0 0 6px ${scoreColor}66)"
-              />
-            </svg>
-            <div class="upo-score-center">
-              <span class="upo-score-num">${over}</span>
-              <span class="upo-score-grade" style="color:${scoreColor}">${data.grade || "N/A"}</span>
-            </div>
-          </div>
-          <div class="upo-score-right">
-            <div class="upo-score-label">Profile Score</div>
-            <div class="upo-score-sub">Overall optimization</div>
-            <div class="upo-earn-badge">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                <polyline points="17 6 23 6 23 12"/>
-              </svg>
-              +${data.potentialEarningsIncrease || "??"} potential
-            </div>
-          </div>
-        </div>
-        <div class="upo-bars">
-          ${renderBar("Headline", hd, 25)}
-          ${renderBar("Bio", bd, 25)}
-          ${renderBar("Skills", sk, 20)}
-          ${renderBar("Portfolio", pf, 20)}
-          ${renderBar("Rate", rt, 10)}
-        </div>
-      </div>
-
-      <!-- Tabs -->
-      <div class="upo-tabs">
-        <button class="upo-tab active" data-tab="improvements">🎯 Fixes</button>
-        <button class="upo-tab" data-tab="headline">✍️ Headline</button>
-        <button class="upo-tab" data-tab="bio">📝 Bio</button>
-        <button class="upo-tab" data-tab="skills">🛠️ Skills</button>
-        <button class="upo-tab" data-tab="rate">💰 Rate</button>
-        <button class="upo-tab" data-tab="portfolio">🗂️ Portfolio</button>
-      </div>
-
-      <!-- Improvements tab -->
-      <div class="upo-tab-pane active" id="tab-improvements">
-        ${(data.topImprovements || []).map(imp => `
-          <div class="upo-improvement">
-            <div class="upo-imp-num">${imp.priority || "-"}</div>
-            <div class="upo-imp-body">
-              <div class="upo-imp-meta">
-                <span class="upo-imp-cat">${imp.category || "General"}</span>
-              </div>
-              <div class="upo-imp-action">${imp.action || ""}</div>
-              <div class="upo-imp-foot">
-                <span class="upo-badge upo-badge-${imp.impact || "low"}">${imp.impact || "low"} impact</span>
-                <span class="upo-badge upo-badge-low">${imp.effort || "low"} effort</span>
-              </div>
-            </div>
-          </div>
-        `).join("")}
-
-        ${data.competitorComparison ? `
-          <div class="upo-competitor">
-            <div class="upo-competitor-label">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
-              </svg>
-              vs. Top Freelancers
-            </div>
-            <p>${data.competitorComparison}</p>
-          </div>
-        ` : ""}
-      </div>
-
-      <!-- Headline tab -->
-      <div class="upo-tab-pane" id="tab-headline">
-        <div class="upo-section-score">
-          <span class="upo-section-score-num" style="color:${getScoreColor(data.headline?.score)}">${data.headline?.score ?? 0}</span>
-          <span class="upo-section-score-denom">/100</span>
-        </div>
-        ${(data.headline?.issues || []).map(i => `<div class="upo-issue">⚠ ${i}</div>`).join("")}
-        ${data.headline?.rewrite ? `
-          <div class="upo-rewrite">
-            <div class="upo-rewrite-header">
-              <div class="upo-rewrite-label">✨ AI Rewrite</div>
-              <button class="upo-copy-btn" data-copy="${escAttr(data.headline.rewrite)}">Copy</button>
-            </div>
-            <div class="upo-rewrite-text">${data.headline.rewrite}</div>
-          </div>
-        ` : ""}
-        <div class="upo-section-title" style="margin-top:14px">Pro Tips</div>
-        ${(data.headline?.tips || []).map(t => `<div class="upo-tip">${t}</div>`).join("")}
-      </div>
-
-      <!-- Bio tab -->
-      <div class="upo-tab-pane" id="tab-bio">
-        <div class="upo-section-score">
-          <span class="upo-section-score-num" style="color:${getScoreColor(data.bio?.score)}">${data.bio?.score ?? 0}</span>
-          <span class="upo-section-score-denom">/100</span>
-        </div>
-        ${(data.bio?.issues || []).map(i => `<div class="upo-issue">⚠ ${i}</div>`).join("")}
-        ${data.bio?.rewrite ? `
-          <div class="upo-rewrite">
-            <div class="upo-rewrite-header">
-              <div class="upo-rewrite-label">✨ AI Rewrite</div>
-              <button class="upo-copy-btn" data-copy="${escAttr(data.bio.rewrite)}">Copy</button>
-            </div>
-            <div class="upo-rewrite-text">${data.bio.rewrite}</div>
-          </div>
-        ` : ""}
-        <div class="upo-section-title" style="margin-top:14px">Pro Tips</div>
-        ${(data.bio?.tips || []).map(t => `<div class="upo-tip">${t}</div>`).join("")}
-      </div>
-
-      <!-- Skills tab -->
-      <div class="upo-tab-pane" id="tab-skills">
-        <div class="upo-section-score">
-          <span class="upo-section-score-num" style="color:${getScoreColor(data.skills?.score)}">${data.skills?.score ?? 0}</span>
-          <span class="upo-section-score-denom">/100 · ${data.skills?.currentCount ?? 0} detected</span>
-        </div>
-        ${data.skills?.missing?.length ? `
-          <div class="upo-section-title">Add These Skills</div>
-          <div class="upo-skill-tags">${data.skills.missing.map(s => `<span class="upo-tag upo-tag-add">+ ${s}</span>`).join("")}</div>
-        ` : ""}
-        ${data.skills?.redundant?.length ? `
-          <div class="upo-section-title">Consider Removing</div>
-          <div class="upo-skill-tags">${data.skills.redundant.map(s => `<span class="upo-tag upo-tag-remove">− ${s}</span>`).join("")}</div>
-        ` : ""}
-        <div class="upo-section-title" style="margin-top:14px">Pro Tips</div>
-        ${(data.skills?.tips || []).map(t => `<div class="upo-tip">${t}</div>`).join("")}
-      </div>
-
-      <!-- Rate tab -->
-      <div class="upo-tab-pane" id="tab-rate">
-        <div class="upo-section-score">
-          <span class="upo-section-score-num" style="color:${getScoreColor(data.rate?.score)}">${data.rate?.score ?? 0}</span>
-          <span class="upo-section-score-denom">/100</span>
-        </div>
-        <div class="upo-rate-compare">
-          <div class="upo-rate-box">
-            <div class="upo-rate-box-label">Current</div>
-            <div class="upo-rate-box-val">${data.rate?.currentRate || "N/A"}</div>
-          </div>
-          <div class="upo-rate-arrow">→</div>
-          <div class="upo-rate-box suggested">
-            <div class="upo-rate-box-label">Suggested</div>
-            <div class="upo-rate-box-val">$${data.rate?.suggestedMin || 0}–$${data.rate?.suggestedMax || 0}/hr</div>
-          </div>
-        </div>
-        ${data.rate?.rationale ? `<div class="upo-tip">${data.rate.rationale}</div>` : ""}
-        <div class="upo-section-title">Pro Tips</div>
-        ${(data.rate?.tips || []).map(t => `<div class="upo-tip">${t}</div>`).join("")}
-      </div>
-
-      <!-- Portfolio tab -->
-      <div class="upo-tab-pane" id="tab-portfolio">
-        <div class="upo-section-score">
-          <span class="upo-section-score-num" style="color:${getScoreColor(data.portfolio?.score)}">${data.portfolio?.score ?? 0}</span>
-          <span class="upo-section-score-denom">/100</span>
-        </div>
-        ${(data.portfolio?.issues || []).map(i => `<div class="upo-issue">⚠ ${i}</div>`).join("")}
-        <div class="upo-section-title">Pro Tips</div>
-        ${(data.portfolio?.tips || []).map(t => `<div class="upo-tip">${t}</div>`).join("")}
-      </div>
-
-      <button class="upo-btn-ghost" id="upo-reanalyze-btn" style="margin-top:20px">↺ Re-analyze Profile</button>
-    `;
-
-    // Tab switching
-    body.querySelectorAll(".upo-tab").forEach((tab) => {
-      tab.addEventListener("click", () => {
-        body.querySelectorAll(".upo-tab").forEach((t) => t.classList.remove("active"));
-        body.querySelectorAll(".upo-tab-pane").forEach((p) => p.classList.remove("active"));
-        tab.classList.add("active");
-        body.querySelector(`#tab-${tab.dataset.tab}`)?.classList.add("active");
+      const res = await fetch(`${APP_URL}/extension-api/analyze-profile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${storage.authToken}`
+        },
+        body: JSON.stringify({ profileContent })
       });
-    });
 
-    // Copy buttons
-    body.querySelectorAll(".upo-copy-btn").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        await navigator.clipboard.writeText(btn.dataset.copy);
-        let origText = btn.textContent;
-        btn.textContent = "Copied!";
-        btn.classList.add("copied");
-        setTimeout(() => {
-          btn.textContent = "Copy";
-          btn.classList.remove("copied");
-        }, 2000);
-      });
-    });
+      const json = await res.json();
 
-    // Re-analyze
-    body.querySelector("#upo-reanalyze-btn")?.addEventListener("click", () => {
-      const profile = scrapeProfile();
-      showApiKeyScreen(profile);
-    });
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  function renderBar(label, score, max) {
-    const pct = Math.round((Math.min(score, max) / max) * 100) || 0;
-    const color = pct >= 75 ? "#22c55e" : pct >= 50 ? "#f59e0b" : "#ef4444";
-    return `
-      <div class="upo-bar-row">
-        <span class="upo-bar-label">${label}</span>
-        <div class="upo-bar-track">
-          <div class="upo-bar-fill" style="width:${pct}%;background:${color};box-shadow:0 0 6px ${color}66"></div>
-        </div>
-        <span class="upo-bar-val">${score}/${max}</span>
-      </div>
-    `;
-  }
-
-  function getScoreColor(s) {
-    if (!s && s !== 0) return "#8b949e";
-    return s >= 75 ? "#22c55e" : s >= 50 ? "#f59e0b" : s >= 30 ? "#f97316" : "#ef4444";
-  }
-
-  function escAttr(str) {
-    return (str || "").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  }
-
-  function showError(msg) {
-    const wrap = document.getElementById("upo-error-wrap");
-    if (wrap) {
-      wrap.innerHTML = `<div class="upo-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${msg}</div>`;
-    }
-  }
-
-  // ── Run analysis ───────────────────────────────────────────────────────────
-  function runAnalysis(profileData, apiKey) {
-    showLoadingScreen();
-    // Uses the newly extracted prompt generator
-    const prompts = window.UPO_Prompts.getMultiStepPrompts(profileData);
-
-    chrome.runtime.sendMessage(
-      { action: "analyzeProfile", prompts, apiKey },
-      (response) => {
-        if (response?.success && response.data) {
-          try {
-            const parsed = typeof response.data === "string" ? JSON.parse(response.data) : response.data;
-            showResultsScreen(parsed);
-          } catch (e) {
-            const profile = scrapeProfile();
-            showApiKeyScreen(profile);
-            setTimeout(() => showError("AI response could not be parsed: <br/>" + e.message), 50);
-          }
-        } else {
-          const profile = scrapeProfile();
-          showApiKeyScreen(profile);
-          setTimeout(() => showError(response?.error || "Analysis failed. Please try again."), 50);
-        }
+      if (!res.ok) {
+        throw new Error(json.error || `HTTP error! status: ${res.status}`);
       }
-    );
+
+      if (json.success && json.data) {
+        renderResultsScreen(json.data);
+      } else {
+        throw new Error("Invalid response format received from API");
+      }
+    } catch (error) {
+      console.error("Analysis Error:", error);
+      renderReadyScreen(error.message); // fallback to ready screen and show error
+    }
   }
 
-  // Listener for progressive updates sent from background script
-  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.action === "updateProgress" && msg.message) {
-      window.upoUpdateProgress(msg.message);
-    }
-  });
 
-  // ── Panel toggle ───────────────────────────────────────────────────────────
-  fab.addEventListener("click", () => {
+  // ── Panel toggling ───────────────────────────────────────────────────────────
+  function togglePanel() {
     panelOpen = !panelOpen;
-    chrome.storage.local.set({ panelOpen }); // Persist toggled state
     panel.classList.toggle("open", panelOpen);
+
     if (panelOpen) {
-      const profile = scrapeProfile();
-      showApiKeyScreen(profile);
+      chrome.storage.local.get(["authToken"], (res) => {
+        if (!res.authToken) {
+          renderLoginScreen();
+        } else {
+          renderReadyScreen();
+        }
+      });
     }
+  }
+
+  fab.addEventListener("click", togglePanel);
+  document.getElementById("upo-close-btn").addEventListener("click", togglePanel);
+  document.getElementById("upo-dash-btn").addEventListener("click", () => {
+    window.open(`${APP_URL}/dashboard`, "_blank");
   });
 
-  document.getElementById("upo-close-btn").addEventListener("click", () => {
-    panelOpen = false;
-    chrome.storage.local.set({ panelOpen });
-    panel.classList.remove("open");
-  });
+  // ── Extension Cleanup (Self-Destruct when removed) ──────────────────────────
+  // When the extension is disabled or removed, the scripts are orphaned.
+  // chrome.runtime.id becomes undefined or accessing it throws an error.
+  const checkInterval = setInterval(() => {
+    try {
+      // If the extension context is invalidated, this will throw or return falsy
+      if (!chrome.runtime?.id) {
+        throw new Error("Extension Context Invalidated");
+      }
+    } catch (e) {
+      // Extension was removed/disabled/updated. Clean up DOM.
+      clearInterval(checkInterval);
+      document.getElementById("upo-root")?.remove();
+      document.getElementById("upo-fab")?.remove();
+      document.getElementById("upo-panel")?.remove();
+      document.getElementById("upo-theme-style")?.remove();
+    }
+  }, 2000);
+
 })();

@@ -122,6 +122,14 @@ export async function POST(req: Request) {
         }
 
         const { modelId, settings, apiKeyId } = aiModelDoc as any;
+        
+        if (!apiKeyId) {
+             return NextResponse.json(
+                { error: "Your AI model configuration is missing an API Key. Please update it in your dashboard." },
+                { status: 422 }
+            );
+        }
+
         const { key: apiKey, provider } = apiKeyId;
 
         const customPrompt = settings?.get?.("customPrompt") ?? "";
@@ -219,4 +227,19 @@ export async function POST(req: Request) {
             { status: 500 }
         );
     }
+}
+
+// Handle OPTIONS for CORS preflight
+export async function OPTIONS() {
+    return NextResponse.json(
+        {},
+        {
+            status: 200,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET,OPTIONS,PATCH,DELETE,POST,PUT",
+                "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization",
+            },
+        }
+    );
 }
