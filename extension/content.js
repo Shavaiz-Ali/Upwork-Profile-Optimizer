@@ -253,6 +253,32 @@
                 display: flex; gap: 10px; line-height: 1.5;
             }
             .upo-improve-icon { color: var(--upo-primary); flex-shrink: 0; margin-top: 2px; }
+
+            /* Accordion */
+            .upo-accordion {
+                background: var(--upo-card2); border: 1px solid var(--upo-border);
+                border-radius: var(--upo-radius); margin-bottom: 20px;
+                overflow: hidden; transition: border-color 0.2s;
+            }
+            .upo-accordion-header {
+                padding: 14px; display: flex; justify-content: space-between; align-items: center;
+                cursor: pointer; background: var(--upo-card2); user-select: none;
+            }
+            .upo-accordion-header:hover { background: var(--upo-card); }
+            .upo-accordion-title {
+                font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--upo-muted); letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px;
+            }
+            .upo-accordion-icon {
+                transition: transform 0.2s cubic-bezier(0.16,1,0.3,1); color: var(--upo-muted);
+            }
+            .upo-accordion.open .upo-accordion-icon { transform: rotate(180deg); }
+            .upo-accordion-content {
+                max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.16,1,0.3,1);
+            }
+            .upo-accordion.open .upo-accordion-content { max-height: 400px; overflow-y: auto; }
+            .upo-accordion-inner { padding: 0 14px 14px 14px; }
+            .upo-accordion-inner::-webkit-scrollbar { width: 4px; }
+            .upo-accordion-inner::-webkit-scrollbar-thumb { background: var(--upo-border); border-radius: 4px; }
         `;
     document.head.appendChild(style);
   }
@@ -266,53 +292,177 @@
   function scrapeProfile() {
     const scope = document.querySelector(".freelancer-profile") || document;
 
-    const get = (selectors) => {
-      for (const sel of selectors) {
-        const els = scope.querySelectorAll(sel);
-        for (const el of els) {
-          if (el?.innerText?.trim() && !el.closest('nav') && !el.closest('footer')) {
-            return el.innerText.trim();
-          }
-        }
-      }
-      return null;
+    // 🔹 Universal cleaner
+    const clean = (text) => text?.replace(/\s+/g, " ").trim();
+
+    // 🔹 Filter visible meaningful text
+    const isValid = (el, min = 2, max = 200) => {
+      const text = clean(el?.innerText);
+      return (
+        text &&
+        text.length >= min &&
+        text.length <= max &&
+        !el.closest("nav") &&
+        !el.closest("footer") &&
+        !el.closest('[role="dialog"]')
+      );
     };
 
-    const name = get(['[data-test="freelancer-name"]', ".identity-name", 'h1[itemprop="name"]', "h1"]);
-    const title = get(['[data-test="title"]', ".freelancer-title", ".title", "h2"]);
+    // 🔹 NAME (improved like title)
+    const name = (() => {
+      const strong = scope.querySelector('[data-test="freelancer-name"], h1[itemprop="name"], .identity-name');
+      if (isValid(strong)) return clean(strong.innerText);
 
-    // Find hourly rate robustly
-    let hourlyRate = get(['[data-test="hourly-rate"]', ".rate"]);
-    if (!hourlyRate) {
-      const allElements = scope.querySelectorAll("div, span, p");
-      for (const el of allElements) {
+      const h1s = Array.from(scope.querySelectorAll("h1"));
+
+      for (const el of h1s) {
+        const text = clean(el.innerText);
+
+        // Name heuristic → short, 2–4 words, no symbols
+        if (
+          text &&
+          text.length < 60 &&
+          /^[a-zA-Z\s.]+$/.test(text) &&
+          text.split(" ").length <= 4
+        ) {
+          return text;
+        }
+      }
+
+      return null;
+    })();
+
+    // 🔹 TITLE (your improved version)
+    const title = (() => {
+      const strong = scope.querySelector('[data-test="title"], .freelancer-title, [itemprop="jobTitle"]');
+      if (isValid(strong, 10, 120)) return clean(strong.innerText);
+
+      const candidates = Array.from(scope.querySelectorAll("h2"));
+
+      for (const el of candidates) {
+        const text = clean(el.innerText);
+        if (isValid(el, 10, 120) && text !== name) {
+          return text;
+        }
+      }
+
+      return null;
+    })();
+
+    // 🔹 HOURLY RATE (pattern-based like pro scrapers)
+    const hourlyRate = (() => {
+      const strong = scope.querySelector('[data-test="hourly-rate"]');
+      if (isValid(strong)) return clean(strong.innerText.match(/\$\d+(\.\d+)?/)?.[0]);
+
+      const all = Array.from(scope.querySelectorAll("span, div, p"));
+
+      for (const el of all) {
         if (el.children.length === 0) {
-          const text = el.innerText?.trim();
-          if (text && /^\$\d+(\.\d+)?(\/hr)?$/i.test(text)) {
-            hourlyRate = text;
-            break;
+          const text = clean(el.innerText);
+
+          if (/^\$\d+(\.\d+)?(\/hr)?$/i.test(text)) {
+            return text.match(/\$\d+(\.\d+)?/)?.[0];
           }
         }
       }
-    }
-    hourlyRate = hourlyRate?.match(/\$\d+(\.\d+)?/)?.[0] ?? null;
 
-    // Long text for overview
-    let overview = null;
-    const bioSelectors = ['[data-test="overview"]', '[data-test="description"]', ".overview", '[class*="overview"]', '[class*="bio"]', 'article', 'main p'];
-    for (const sel of bioSelectors) {
-      const els = scope.querySelectorAll(sel);
-      for (const el of els) {
-        if (el?.innerText?.trim().length > 60) {
-          overview = el.innerText.trim();
-          break;
+      return null;
+    })();
+
+    // 🔹 OVERVIEW (long meaningful text)
+    const overview = (() => {
+      const strong = scope.querySelector('[data-test="overview"], [data-test="description"]');
+      if (isValid(strong, 60, 5000)) return clean(strong.innerText);
+
+      const paragraphs = Array.from(scope.querySelectorAll("p, article, div"));
+
+      let best = null;
+
+      for (const el of paragraphs) {
+        const text = clean(el.innerText);
+
+        if (
+          text &&
+          text.length > 80 &&
+          text.length < 3000 &&
+          !text.includes("$") // avoid pricing sections
+        ) {
+          // pick longest meaningful block
+          if (!best || text.length > best.length) {
+            best = text;
+          }
         }
       }
-      if (overview) break;
-    }
 
-    const skillEls = scope.querySelectorAll('[data-test="skill"] a, .skill-badge, [class*="skill"] a, .skills-list li, span[data-cy="skill"]');
-    const skills = Array.from(skillEls).map((el) => el.innerText?.trim()?.replace(/[\n\r]+/g, ' ')).filter(Boolean).slice(0, 25);
+      return best;
+    })();
+
+    // 🔹 SKILLS (context + grouping)
+    const skills = (() => {
+      // 1. Specific Upwork classes and selectors
+      const selectors = [
+        '[data-test="skill"] a',
+        '.skills ul.air3-token-wrap li',
+        '.skills .air3-token',
+        '.skill-badge',
+        'span[data-cy="skill"]'
+      ].join(', ');
+      
+      const strongEls = scope.querySelectorAll(selectors);
+      
+      if (strongEls.length > 0) {
+        const seen = new Set();
+        return Array.from(strongEls)
+          .map(el => clean(el.innerText))
+          .filter(text => {
+            if(!text || text.length <= 1 || text.includes("...")) return false;
+            const lower = text.toLowerCase();
+            if(seen.has(lower)) return false;
+            seen.add(lower);
+            return true;
+          })
+          .slice(0, 25);
+      }
+
+      // 2. Fallback: Find clusters of short texts but explicitly inside skill wrappers
+      const containers = Array.from(scope.querySelectorAll(".skills, [class*='skills-'], [class*='skill-']"));
+      let bestCluster = [];
+
+      for (const container of containers) {
+        if (container.closest("nav") || container.closest("header") || container.closest("footer")) continue;
+
+        const items = Array.from(container.querySelectorAll("li, span.air3-token, button.air3-token"));
+        
+        const texts = items
+          .map(el => clean(el.innerText))
+          .filter(text =>
+            text &&
+            text.length > 1 &&
+            text.length < 40 &&
+            !text.includes("$") &&
+            !text.includes("http") &&
+            // Filter out common falsely detected UI pieces in the profile
+            !/^(all work|upgrade to|subscribe now|edit|view|buy connects|video introduction|open to|fluent|native|verified|close|unlink|since 20)/i.test(text) &&
+            /^[a-zA-Z0-9+#.\s-]+$/.test(text)
+          );
+
+        if (texts.length >= 2 && texts.length > bestCluster.length) {
+          bestCluster = texts;
+        }
+      }
+
+      const finalSkills = [];
+      const seenLower = new Set();
+      for (const s of bestCluster) {
+          const l = s.toLowerCase();
+          if(!seenLower.has(l)) {
+              seenLower.add(l);
+              finalSkills.push(s);
+          }
+      }
+
+      return finalSkills.slice(0, 25);
+    })();
 
     return {
       name,
@@ -320,8 +470,30 @@
       hourlyRate,
       overview,
       skills: skills.join(", "),
-      isLikelyProfile: !!(name || title || overview || skills.length > 0)
+      isLikelyProfile: !!(name || title || overview || skills.length > 0),
     };
+  }
+
+  async function getCompleteProfile(maxAttempts = 10, delay = 800) {
+    let attempt = 0;
+
+    while (attempt < maxAttempts) {
+      const profile = scrapeProfile();
+
+      const isGood =
+        profile.name &&
+        profile.title &&
+        (profile.overview || profile.skills);
+
+      if (isGood) {
+        return profile;
+      }
+
+      await new Promise((res) => setTimeout(res, delay));
+      attempt++;
+    }
+
+    return scrapeProfile(); // fallback
   }
 
   // ── Build UI elements ──────────────────────────────────────────────────────
@@ -452,9 +624,10 @@
     });
   }
 
-  function renderReadyScreen(errorMsg = null) {
+  console.log("PROFILE SNAPSHOT:", scrapeProfile());
+  async function renderReadyScreen(errorMsg = null) {
     const body = document.getElementById("upo-body");
-    const profile = scrapeProfile();
+    const profile = await getCompleteProfile();
 
     body.innerHTML = `
             <div style="margin-bottom: 20px;">
@@ -462,15 +635,37 @@
                 <p style="font-size: 12.5px; color: var(--upo-muted); margin: 0;">We will use your active AI Model configuration from the dashboard.</p>
             </div>
 
-            <div class="upo-preview" style="border-color: ${!profile.isLikelyProfile ? 'var(--upo-warn)' : 'var(--upo-border)'}">
-                <div class="upo-preview-label">
-                    <span>Detected Profile Context</span>
-                    ${!profile.isLikelyProfile ? '<span style="color:var(--upo-warn)">⚠️ Low Confidence</span>' : ''}
+            <div class="upo-accordion" id="upo-profile-accordion" style="border-color: ${!profile.isLikelyProfile ? 'var(--upo-warn)' : 'var(--upo-border)'}">
+                <div class="upo-accordion-header" id="upo-accordion-toggle">
+                    <div class="upo-accordion-title">
+                        <span>Detected Profile Context</span>
+                        ${!profile.isLikelyProfile ? '<span style="color:var(--upo-warn)">⚠️ Low Confidence</span>' : ''}
+                    </div>
+                    <svg class="upo-accordion-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </div>
-                <div class="upo-preview-row"><span class="upo-preview-key">Name</span><span class="upo-preview-val upo-truncate">${profile.name || '-'}</span></div>
-                <div class="upo-preview-row"><span class="upo-preview-key">Role</span><span class="upo-preview-val upo-truncate">${profile.title || '-'}</span></div>
-                <div class="upo-preview-row"><span class="upo-preview-key">Rate</span><span class="upo-preview-val">${profile.hourlyRate || '-'}</span></div>
-                <div class="upo-preview-row"><span class="upo-preview-key">Overview</span><span class="upo-preview-val">${profile.overview ? '✓ Detected' : '❌ Missing'}</span></div>
+                <div class="upo-accordion-content">
+                    <div class="upo-accordion-inner">
+                        <div class="upo-preview-row" style="margin-top: 4px;"><span class="upo-preview-key">Name</span><span class="upo-preview-val upo-truncate" style="max-width: 75%;">${profile.name || '-'}</span></div>
+                        <div class="upo-preview-row"><span class="upo-preview-key">Role</span><span class="upo-preview-val upo-truncate" style="max-width: 75%;">${profile.title || '-'}</span></div>
+                        <div class="upo-preview-row"><span class="upo-preview-key">Rate</span><span class="upo-preview-val">${profile.hourlyRate || '-'}</span></div>
+                        
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--upo-border);">
+                            <span class="upo-preview-key" style="display:block; margin-bottom:8px; font-size: 11.5px; font-weight: 600;">Skills Detected</span>
+                            <div class="upo-keyword-pills" style="margin-top: 0; padding-bottom: 4px;">
+                                ${profile.skills ? profile.skills.split(', ').map(s => `<span class="upo-pill" style="background:var(--upo-primary-sub); color:var(--upo-primary); border-color:var(--upo-primary-border); padding: 3px 8px; font-size: 10.5px;">${s}</span>`).join('') : '<span style="color:var(--upo-warn)">❌ None Found</span>'}
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--upo-border);">
+                            <span class="upo-preview-key" style="display:block; margin-bottom:8px; font-size: 11.5px; font-weight: 600;">Overview</span>
+                            <div style="font-size: 12px; color: var(--upo-fg); line-height: 1.6; border-radius: 6px; background: var(--upo-input); padding: 12px; border: 1px solid var(--upo-border);">
+                                ${profile.overview ? profile.overview : '<span style="color:var(--upo-warn)">❌ Missing</span>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             ${!profile.isLikelyProfile ? `
@@ -491,6 +686,11 @@
 
             <button class="upo-btn upo-btn-outline" id="upo-logout-btn" style="margin-top: 10px; border:none; background: transparent; font-size: 12px;">Sign Out</button>
         `;
+
+    document.getElementById("upo-accordion-toggle")?.addEventListener("click", () => {
+      const acc = document.getElementById("upo-profile-accordion");
+      if (acc) acc.classList.toggle("open");
+    });
 
     document.getElementById("upo-logout-btn").addEventListener("click", async () => {
       await chrome.storage.local.remove(["authToken", "userEmail"]);
