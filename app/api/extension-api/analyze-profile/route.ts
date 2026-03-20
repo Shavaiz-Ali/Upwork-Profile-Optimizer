@@ -12,6 +12,7 @@ import { getProviderModel } from "@/lib/ai/provider";
 /** Shape of the profile analysis sent from the browser extension */
 interface AnalyzeRequest {
     profileContent: string;
+    modelId?: string;
     profile?: {
         name?: string;
         title?: string;
@@ -106,26 +107,43 @@ export async function POST(req: Request) {
         // =========================
         await connectToDatabase();
 
-        const aiModelDoc = await AiModel.findOne({
-            userId,
-            isActive: true,
-        })
-            .populate<{
-                apiKeyId: { key: string; provider: string };
-            }>({
-                path: "apiKeyId",
-                select: "+key provider",
-                model: UserApiKey,
+        let aiModelDoc;
+        if (body.modelId) {
+            aiModelDoc = await AiModel.findOne({
+                _id: body.modelId,
+                userId,
+                isActive: true,
             })
-            .lean();
-
+                .populate<{
+                    apiKeyId: { key: string; provider: string };
+                }>({
+                    path: "apiKeyId",
+                    select: "+key provider",
+                    model: UserApiKey,
+                })
+                .lean();
+        } else {
+            aiModelDoc = await AiModel.findOne({
+                userId,
+                isActive: true,
+            })
+                .populate<{
+                    apiKeyId: { key: string; provider: string };
+                }>({
+                    path: "apiKeyId",
+                    select: "+key provider",
+                    model: UserApiKey,
+                })
+                .lean();
+        }
 
         console.log("aiModelDoc", aiModelDoc);
         if (!aiModelDoc) {
             return NextResponse.json(
                 {
-                    error:
-                        "No active AI model configured. Please complete onboarding.",
+                    error: body.modelId
+                        ? "The selected AI model configuration was not found or is inactive."
+                        : "No active AI model configured. Please complete onboarding.",
                 },
                 { status: 422 }
             );

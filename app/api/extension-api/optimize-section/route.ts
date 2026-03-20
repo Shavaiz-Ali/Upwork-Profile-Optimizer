@@ -16,6 +16,7 @@ interface OptimizeSectionRequest {
     section: SectionType;
     currentContent: string;
     profileContext: string; // Brief description of who the freelancer is
+    modelId?: string;
 }
 
 // ─── Zod Schema ───────────────────────────────────────────────────────────────
@@ -187,19 +188,36 @@ export async function POST(req: Request) {
         // ─── 3. DB + MODEL FETCH ──────────────────────────────────────────────
         await connectToDatabase();
 
-        const aiModelDoc = await AiModel.findOne({ userId, isActive: true })
-            .populate<{
-                apiKeyId: { key: string; provider: string };
-            }>({
-                path: "apiKeyId",
-                select: "+key provider",
-                model: UserApiKey,
-            })
-            .lean();
+        let aiModelDoc;
+        if (body.modelId) {
+            aiModelDoc = await AiModel.findOne({ _id: body.modelId, userId, isActive: true })
+                .populate<{
+                    apiKeyId: { key: string; provider: string };
+                }>({
+                    path: "apiKeyId",
+                    select: "+key provider",
+                    model: UserApiKey,
+                })
+                .lean();
+        } else {
+            aiModelDoc = await AiModel.findOne({ userId, isActive: true })
+                .populate<{
+                    apiKeyId: { key: string; provider: string };
+                }>({
+                    path: "apiKeyId",
+                    select: "+key provider",
+                    model: UserApiKey,
+                })
+                .lean();
+        }
 
         if (!aiModelDoc) {
             return NextResponse.json(
-                { error: "No active AI model configured. Please complete onboarding." },
+                {
+                    error: body.modelId
+                        ? "The selected AI model configuration was not found or is inactive."
+                        : "No active AI model configured. Please complete onboarding."
+                },
                 { status: 422 }
             );
         }
