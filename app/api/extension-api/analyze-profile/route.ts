@@ -8,6 +8,7 @@ import AiModel from "@/lib/models/ai-model.model";
 import UserApiKey from "@/lib/models/user-api-key.model";
 import Analysis from "@/lib/models/analysis.model";
 import { getProviderModel } from "@/lib/ai/provider";
+import mongoose from "mongoose";
 
 /** Shape of the profile analysis sent from the browser extension */
 interface AnalyzeRequest {
@@ -109,6 +110,14 @@ export async function POST(req: Request) {
 
         let aiModelDoc;
         if (body.modelId) {
+            // Validate modelId is a valid ObjectId
+            if (!mongoose.Types.ObjectId.isValid(body.modelId)) {
+                return NextResponse.json(
+                    { error: "Invalid AI model ID format." },
+                    { status: 400 }
+                );
+            }
+
             aiModelDoc = await AiModel.findOne({
                 _id: body.modelId,
                 userId,

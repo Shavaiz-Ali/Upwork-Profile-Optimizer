@@ -633,8 +633,8 @@
       const json = await res.json();
       if (json.success && json.data) {
         userModels = json.data;
-        // Set default if not set
-        if (!selectedModelId && userModels.length > 0) {
+        // Set default if not set or if it was stuck on 'loading'
+        if ((!selectedModelId || selectedModelId === 'loading') && userModels.length > 0) {
           selectedModelId = userModels[0]._id;
         }
         return userModels;
