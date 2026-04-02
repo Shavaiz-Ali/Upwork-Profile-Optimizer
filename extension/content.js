@@ -335,6 +335,75 @@
         0% { background-position: 200% 0; }
         100% { background-position: -200% 0; }
       }
+
+      /* ── Cover Letter styles ─────────────────────────────────────────────── */
+      .upo-job-card {
+        background: var(--upo-card2); border: 1px solid var(--upo-border);
+        border-radius: var(--upo-radius); padding: 14px; margin-bottom: 10px;
+        cursor: pointer; transition: border-color 0.2s, transform 0.15s, background 0.15s;
+      }
+      .upo-job-card:hover { background: var(--upo-card); border-color: var(--upo-primary-border); transform: translateY(-2px); }
+      .upo-job-card:active { transform: scale(0.99); }
+      .upo-job-card-title { font-size: 13.5px; font-weight: 700; color: var(--upo-fg); margin-bottom: 6px; line-height: 1.4; }
+      .upo-job-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+      .upo-job-card-desc { font-size: 12px; color: var(--upo-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .upo-match-badge {
+        font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+        border: 1px solid;
+      }
+      .upo-match-high { background: var(--upo-success-sub); color: var(--upo-success); border-color: rgba(34,197,94,0.3); }
+      .upo-match-mid  { background: var(--upo-warn-sub);    color: var(--upo-warn);    border-color: rgba(245,158,11,0.3); }
+      .upo-match-low  { background: var(--upo-error-sub);   color: var(--upo-error);   border-color: rgba(227,98,72,0.3); }
+
+      .upo-cl-textarea {
+        width: 100%; min-height: 220px; resize: vertical;
+        background: var(--upo-input); border: 1px solid var(--upo-border);
+        border-radius: var(--upo-radius); color: var(--upo-fg);
+        font-family: var(--upo-font); font-size: 13px; line-height: 1.65;
+        padding: 14px; outline: none; transition: border-color 0.15s;
+      }
+      .upo-cl-textarea:focus { border-color: var(--upo-primary); }
+
+      .upo-copy-btn {
+        display: flex; align-items: center; gap: 6px;
+        background: var(--upo-success-sub); color: var(--upo-success);
+        border: 1px solid rgba(34,197,94,0.3); border-radius: var(--upo-radius);
+        padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+        transition: all 0.15s;
+      }
+      .upo-copy-btn:hover { background: rgba(34,197,94,0.2); }
+      .upo-copy-btn.copied { background: var(--upo-success); color: #fff; }
+
+      .upo-refine-row { display: flex; gap: 8px; margin-top: 12px; }
+      .upo-refine-input {
+        flex: 1; padding: 9px 12px;
+        background: var(--upo-input); border: 1px solid var(--upo-border);
+        border-radius: var(--upo-radius); color: var(--upo-fg);
+        font-family: var(--upo-font); font-size: 13px; outline: none;
+        transition: border-color 0.15s;
+      }
+      .upo-refine-input:focus { border-color: var(--upo-primary); }
+      .upo-refine-btn {
+        padding: 9px 14px; background: var(--upo-primary); color: #fff;
+        border: none; border-radius: var(--upo-radius); font-size: 13px;
+        font-weight: 700; cursor: pointer; transition: background 0.15s;
+        white-space: nowrap;
+      }
+      .upo-refine-btn:hover { background: var(--upo-primary-hover); }
+      .upo-refine-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+      /* Inline inject button on apply page */
+      #upo-cl-inject-btn {
+        display: inline-flex; align-items: center; gap: 7px;
+        margin-top: 10px; padding: 10px 18px;
+        background: linear-gradient(135deg, var(--upo-primary), var(--upo-primary-hover));
+        color: #fff; border: none; border-radius: var(--upo-radius);
+        font-family: var(--upo-font); font-size: 13.5px; font-weight: 700;
+        cursor: pointer; box-shadow: 0 4px 14px var(--upo-primary-ring);
+        transition: transform 0.15s, box-shadow 0.15s;
+        z-index: 999998;
+      }
+      #upo-cl-inject-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--upo-primary-ring); }
     `;
     document.head.appendChild(style);
   }
@@ -569,15 +638,46 @@
     return scrapeProfile();
   }
 
+  // ── Page-type helpers ───────────────────────────────────────────────────────
+  function isProfilePage() {
+    return /upwork\.com\/(freelancers|profile|o\/profiles)\//i.test(location.href);
+  }
+  function isJobListingPage() {
+    return /upwork\.com\/(nx\/find-work|jobs)(\/?$|\?|\/)/.test(location.href) &&
+      !/\/apply/.test(location.href);
+  }
+  function isJobApplyPage() {
+    return /upwork\.com\/(ab\/proposals|nx\/proposals|jobs\/.*\/apply)/i.test(location.href);
+  }
+
   // ── Build UI ────────────────────────────────────────────────────────────────
   const fab = document.createElement("div");
   fab.id = "upo-fab";
-  fab.innerHTML = `
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-    </svg>
-    Optimize Profile
-  `;
+
+  if (isJobListingPage()) {
+    fab.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      Find Matching Jobs
+    `;
+  } else if (isJobApplyPage()) {
+    // On apply pages the FAB is hidden; we inject an inline button instead
+    fab.style.display = "none";
+    fab.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      </svg>
+      Write Cover Letter
+    `;
+  } else {
+    fab.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+      Optimize Profile
+    `;
+  }
   document.body.appendChild(fab);
 
   const panel = document.createElement("div");
@@ -736,8 +836,14 @@
 
         await chrome.storage.local.set({ authToken: data.token, userEmail: data.email });
 
-        // Only navigate away on success
-        renderReadyScreen();
+        // Navigate to correct screen based on current page type
+        if (isJobListingPage()) {
+          renderMatchingJobsScreen();
+        } else if (isJobApplyPage()) {
+          renderReadyScreen();
+        } else {
+          renderReadyScreen();
+        }
       } catch (err) {
         // Show error inline, restore button — no full re-render
         errorEl.style.display = "flex";
@@ -1052,7 +1158,7 @@
         document.getElementById("upo-improvements-accordion").classList.toggle("open");
       });
 
-      document.getElementById("upo-reanalyze-btn").addEventListener("click", () => renderReadyScreen());
+      document.getElementById("upo-reanalyze-btn").addEventListener("click", () => runAnalysis(profile, true));
 
       document.querySelectorAll(".upo-section-item").forEach(item => {
         item.addEventListener("click", () => {
@@ -1123,11 +1229,11 @@
               "Content-Type": "application/json",
               "Authorization": `Bearer ${storage.authToken}`
             },
-            body: JSON.stringify({ 
-              section: sectionKey, 
-              currentContent, 
+            body: JSON.stringify({
+              section: sectionKey,
+              currentContent,
               profileContext,
-              modelId: selectedModelId 
+              modelId: selectedModelId
             })
           });
 
@@ -1165,8 +1271,495 @@
     renderMain();
   }
 
+  // ── JOB LISTING: Scrape visible jobs ──────────────────────────────────────
+  function scrapeJobListings() {
+    const jobs = [];
+    const clean = (el) => el?.innerText?.replace(/\s+/g, ' ').trim() || '';
+
+    // Try increasingly broad selectors until we get matches
+    const selectorSets = [
+      // Upwork find-work page job tiles
+      '[data-test="job-tile"]',
+      '[data-ev-label="job_tile"]',
+      'article[class*="job"]',
+      // Generic: any article on the page
+      'article',
+      // Broad: any element with a heading link (h2/h3 with an <a>)
+    ];
+
+    let cards = [];
+    for (const sel of selectorSets) {
+      cards = Array.from(document.querySelectorAll(sel));
+      if (cards.length > 0) break;
+    }
+
+    // Last resort: find all <h2> or <h3> elements with links and build synthetic cards
+    if (cards.length === 0) {
+      const headings = Array.from(document.querySelectorAll('h2 a, h3 a'));
+      cards = headings
+        .filter(a => a.href && a.href.includes('/jobs/'))
+        .map(a => a.closest('section, article, div.job, li') || a.parentElement);
+    }
+
+    cards.forEach((card, idx) => {
+      // Extract title — prefer a link in h2/h3, then any heading, then any anchor
+      const titleLink = card.querySelector('h2 a, h3 a, h4 a, [class*="title"] a, [class*="job-title"] a');
+      const title = titleLink
+        ? clean(titleLink)
+        : clean(card.querySelector('h2, h3, h4, [class*="title"]'));
+
+      if (!title || title.length < 4) return;
+
+      const href = titleLink?.href || '';
+      // Skip non-job links
+      if (href && !href.includes('/jobs/') && !href.includes('/search/')) return;
+
+      const descEl = card.querySelector(
+        '[data-test="job-description-text"], [class*="description"], [class*="snippet"], p'
+      );
+      const description = clean(descEl);
+
+      const skillEls = card.querySelectorAll(
+        '[data-test="token"], .air3-token, [class*="token"], [class*="skill"], [data-cy="skill"]'
+      );
+      const skills = Array.from(skillEls).map(el => clean(el)).filter(Boolean);
+
+      const budgetEl = card.querySelector(
+        '[data-test="budget"], [data-test="job-type"], [class*="budget"], [class*="price"], [class*="rate"]'
+      );
+      const budget = clean(budgetEl);
+
+      jobs.push({ id: idx, title, description, skills, budget, jobUrl: href });
+    });
+
+    return jobs;
+  }
+
+  // ── JOB LISTING: Match jobs to user skills ──────────────────────────────────
+  function matchJobsToSkills(jobs, userSkillsStr) {
+    if (!userSkillsStr) return jobs.map(j => ({ ...j, matchScore: 0, matchedSkills: [] }));
+    const userSkills = userSkillsStr.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+
+    return jobs.map(job => {
+      const jobText = (job.title + ' ' + job.description + ' ' + job.skills.join(' ')).toLowerCase();
+      const matchedSkills = userSkills.filter(skill => jobText.includes(skill));
+      const matchScore = userSkills.length > 0
+        ? Math.round((matchedSkills.length / userSkills.length) * 100)
+        : 0;
+      return { ...job, matchScore, matchedSkills };
+    }).sort((a, b) => b.matchScore - a.matchScore);
+  }
+
+  // ── JOB APPLY: Scrape current job details ───────────────────────────────────
+  function scrapeCurrentJob() {
+    const clean = (text) => text?.replace(/\s+/g, ' ').trim();
+
+    // Title
+    const titleEl = document.querySelector(
+      '[data-test="job-title"], h1, [class*="job-title"], .job-title'
+    );
+    const title = clean(titleEl?.innerText) || document.title.replace('| Upwork', '').trim();
+
+    // Description
+    const descEl = document.querySelector(
+      '[data-test="job-description"], [class*="description"], .description, .job-description'
+    );
+    const description = clean(descEl?.innerText) || '';
+
+    // Skills
+    const skillEls = document.querySelectorAll(
+      '[data-test="token"], .air3-token, [data-cy="skill"], [class*="skill-tag"]'
+    );
+    const skills = Array.from(skillEls).map(el => clean(el.innerText)).filter(Boolean).join(', ');
+
+    // Budget
+    const budgetEl = document.querySelector('[data-test="budget"], [class*="budget"]');
+    const budget = clean(budgetEl?.innerText) || '';
+
+    return { title, description, skills, budget };
+  }
+
+  // ── COVER LETTER: API call ───────────────────────────────────────────────────
+  async function callCoverLetterAPI({ job, existingLetter, optimizeInstruction, profile }) {
+    const storage = await chrome.storage.local.get(['authToken']);
+    if (!storage.authToken) throw new Error('Not authenticated');
+
+    const res = await fetch(`${APP_URL}/extension-api/cover-letter`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${storage.authToken}`
+      },
+      body: JSON.stringify({
+        jobTitle: job.title,
+        jobDescription: job.description,
+        requiredSkills: job.skills,
+        budget: job.budget,
+        freelancerProfile: profile,
+        existingLetter: existingLetter || undefined,
+        optimizeInstruction: optimizeInstruction || undefined,
+        modelId: selectedModelId
+      })
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Cover letter generation failed');
+    return json.data.coverLetter;
+  }
+
+  // ── COVER LETTER: Render panel ───────────────────────────────────────────────
+  function renderCoverLetterPanel(job, initialLetter, isLoading, fromCache = false) {
+    const body = document.getElementById('upo-body');
+    const shortTitle = job.title.length > 45 ? job.title.substring(0, 42) + '…' : job.title;
+
+    body.innerHTML = `
+      <button class="upo-back-btn" id="upo-cl-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back
+      </button>
+
+      ${fromCache ? `
+        <div style="display:flex; align-items:center; gap:8px; background:var(--upo-primary-sub); border:1px solid var(--upo-primary-border); border-radius:var(--upo-radius); padding:8px 12px; margin-bottom:12px; font-size:12px; color:var(--upo-primary); font-weight:600;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Restored from cache &nbsp;&bull;&nbsp;
+          <span id="upo-cl-regen" style="cursor:pointer; text-decoration:underline;">Regenerate</span>
+        </div>
+      ` : ''}
+
+      <div style="margin-bottom:14px;">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--upo-muted); letter-spacing:0.05em; margin-bottom:4px;">Cover Letter For</div>
+        <div style="font-size:13.5px; font-weight:700; color:var(--upo-fg); line-height:1.4;">${shortTitle}</div>
+      </div>
+
+      <div id="upo-cl-content" style="margin-bottom:16px;">
+        ${isLoading || !initialLetter ? `
+          <div class="upo-skeleton" style="height:20px; width:80%; margin-bottom:10px;"></div>
+          <div class="upo-skeleton" style="height:20px; width:95%; margin-bottom:10px;"></div>
+          <div class="upo-skeleton" style="height:20px; width:70%; margin-bottom:10px;"></div>
+          <div class="upo-skeleton" style="height:20px; width:88%; margin-bottom:10px;"></div>
+          <div class="upo-skeleton" style="height:20px; width:60%;"></div>
+        ` : `
+          <textarea class="upo-cl-textarea" id="upo-cl-text" spellcheck="false">${initialLetter}</textarea>
+        `}
+      </div>
+
+      <div id="upo-cl-actions" style="display:${initialLetter && !isLoading ? 'block' : 'none'}">
+        <button class="upo-copy-btn" id="upo-cl-copy">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copy to Clipboard
+        </button>
+
+        <div style="margin-top:16px;">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--upo-muted); letter-spacing:0.05em; margin-bottom:8px;">Refine with AI</div>
+          <div class="upo-refine-row">
+            <input
+              type="text"
+              class="upo-refine-input"
+              id="upo-cl-refine-input"
+              placeholder="e.g. Make it shorter, more casual…"
+            />
+            <button class="upo-refine-btn" id="upo-cl-refine-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline; vertical-align:middle; margin-right:4px;">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+              Refine
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="upo-cl-error" style="display:none; margin-top:12px;"></div>
+    `;
+
+    // Regenerate link
+    const regenLink = document.getElementById('upo-cl-regen');
+    if (regenLink) {
+      regenLink.addEventListener('click', () => generateAndShowCoverLetter(job, true));
+    }
+
+    // Back button
+    document.getElementById('upo-cl-back').addEventListener('click', () => {
+      if (isJobListingPage()) {
+        chrome.storage.local.get(['authToken'], (res) => {
+          if (res.authToken) renderMatchingJobsScreen();
+          else renderLoginScreen();
+        });
+      } else {
+        chrome.storage.local.get(['authToken'], (res) => {
+          if (!res.authToken) renderLoginScreen();
+          else renderReadyScreen();
+        });
+      }
+    });
+
+    // Copy button
+    const copyBtn = document.getElementById('upo-cl-copy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        const text = document.getElementById('upo-cl-text')?.value || initialLetter || '';
+        navigator.clipboard.writeText(text).then(() => {
+          copyBtn.classList.add('copied');
+          copyBtn.innerHTML = `
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Copied!
+          `;
+          setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = `
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              Copy to Clipboard
+            `;
+          }, 2200);
+        });
+      });
+    }
+
+    // Refine button
+    const refineBtn = document.getElementById('upo-cl-refine-btn');
+    const refineInput = document.getElementById('upo-cl-refine-input');
+    if (refineBtn && refineInput) {
+      const triggerRefine = async () => {
+        const instruction = refineInput.value.trim();
+        if (!instruction) return;
+        const currentLetter = document.getElementById('upo-cl-text')?.value || initialLetter;
+        refineBtn.disabled = true;
+        refineInput.disabled = true;
+
+        const contentDiv = document.getElementById('upo-cl-content');
+        contentDiv.innerHTML = `
+          <div class="upo-skeleton" style="height:20px; width:80%; margin-bottom:10px;"></div>
+          <div class="upo-skeleton" style="height:20px; width:95%; margin-bottom:10px;"></div>
+          <div class="upo-skeleton" style="height:20px; width:70%; margin-bottom:10px;"></div>
+          <div class="upo-skeleton" style="height:20px; width:88%; margin-bottom:10px;"></div>
+          <div class="upo-skeleton" style="height:20px; width:60%;"></div>
+        `;
+        document.getElementById('upo-cl-actions').style.display = 'none';
+
+        try {
+          const storage = await chrome.storage.local.get(['upoProfile']);
+          const profile = storage.upoProfile || {};
+          const refined = await callCoverLetterAPI({
+            job,
+            existingLetter: currentLetter,
+            optimizeInstruction: instruction,
+            profile
+          });
+          renderCoverLetterPanel(job, refined, false);
+        } catch (err) {
+          contentDiv.innerHTML = `<textarea class="upo-cl-textarea" id="upo-cl-text" spellcheck="false">${currentLetter}</textarea>`;
+          document.getElementById('upo-cl-actions').style.display = 'block';
+          const errDiv = document.getElementById('upo-cl-error');
+          if (errDiv) {
+            errDiv.style.display = 'flex';
+            errDiv.innerHTML = `<div class="upo-error-msg">${err.message}</div>`;
+          }
+          if (refineBtn) refineBtn.disabled = false;
+          if (refineInput) refineInput.disabled = false;
+        }
+      };
+      refineBtn.addEventListener('click', triggerRefine);
+      refineInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') triggerRefine(); });
+    }
+  }
+
+  // ── COVER LETTER: Generate and show ─────────────────────────────────────────
+  async function generateAndShowCoverLetter(job, forceRegenerate = false) {
+    // Check cache first (keyed by job title)
+    if (!forceRegenerate) {
+      const cacheKey = 'upoCL_' + btoa(encodeURIComponent(job.title || '')).substring(0, 20);
+      const cached = await chrome.storage.local.get([cacheKey]);
+      if (cached[cacheKey]) {
+        renderCoverLetterPanel(job, cached[cacheKey], false, true);
+        return;
+      }
+    }
+
+    renderCoverLetterPanel(job, null, true, false);
+    try {
+      const storage = await chrome.storage.local.get(['upoProfile']);
+      const profile = storage.upoProfile || {};
+      const letter = await callCoverLetterAPI({ job, profile });
+      // Save to cache
+      const cacheKey = 'upoCL_' + btoa(encodeURIComponent(job.title || '')).substring(0, 20);
+      chrome.storage.local.set({ [cacheKey]: letter });
+      renderCoverLetterPanel(job, letter, false, false);
+    } catch (err) {
+      const body = document.getElementById('upo-body');
+      if (!body) return;
+      renderCoverLetterPanel(job, '', false, false);
+      const contentDiv = document.getElementById('upo-cl-content');
+      if (contentDiv) {
+        contentDiv.innerHTML = `<div class="upo-error-msg" style="display:flex;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <div>${err.message}</div>
+        </div>`;
+      }
+    }
+  }
+
+  // ── JOB LISTING: Render matched jobs panel ───────────────────────────────────
+  function renderMatchingJobsScreen() {
+    const body = document.getElementById('upo-body');
+
+    // Show loading first
+    body.innerHTML = `
+      <div style="text-align:center; padding:30px 0;">
+        <div class="upo-spinner-large"></div>
+        <p style="font-size:13px; color:var(--upo-muted); margin:0;">Scanning jobs on this page…</p>
+      </div>
+    `;
+
+    chrome.storage.local.get(['upoProfile'], (storage) => {
+      const profile = storage.upoProfile || {};
+      const userSkills = profile.skills || '';
+      const jobs = scrapeJobListings();
+      const matched = matchJobsToSkills(jobs, userSkills);
+
+      if (matched.length === 0) {
+        body.innerHTML = `
+          <div style="text-align:center; padding:30px 0;">
+            <div style="font-size:36px; margin-bottom:12px;">🔍</div>
+            <h3 style="font-size:15px; font-weight:800; margin:0 0 8px;">No jobs found</h3>
+            <p style="font-size:13px; color:var(--upo-muted); margin:0;">Scroll down to load more jobs, then click the button again.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const getBadgeClass = (score) => score >= 60 ? 'upo-match-high' : score >= 30 ? 'upo-match-mid' : 'upo-match-low';
+      const getBadgeLabel = (score) => score >= 60 ? `${score}% match` : score >= 30 ? `${score}% match` : `${score}% match`;
+
+      body.innerHTML = `
+        <div style="margin-bottom:16px;">
+          <h3 style="font-size:15px; font-weight:800; margin:0 0 4px;">Matching Jobs</h3>
+          <p style="font-size:12px; color:var(--upo-muted); margin:0;">${matched.length} job${matched.length !== 1 ? 's' : ''} found — sorted by skill match. Click to write a cover letter.</p>
+        </div>
+        <div id="upo-jobs-list">
+          ${matched.map((job) => `
+            <div class="upo-job-card" data-job-id="${job.id}">
+              <div class="upo-job-card-title">${job.title}</div>
+              <div class="upo-job-card-meta">
+                <span class="upo-match-badge ${getBadgeClass(job.matchScore)}">${getBadgeLabel(job.matchScore)}</span>
+                ${job.budget ? `<span style="font-size:11px; color:var(--upo-dim);">${job.budget}</span>` : ''}
+              </div>
+              ${job.matchedSkills.length > 0 ? `
+                <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
+                  ${job.matchedSkills.slice(0, 5).map(s => `
+                    <span class="upo-pill present" style="font-size:10px; padding:2px 7px;">${s}</span>
+                  `).join('')}
+                </div>
+              ` : ''}
+              ${job.description ? `<div class="upo-job-card-desc">${job.description}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      // Attach click handlers
+      document.querySelectorAll('.upo-job-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const jobId = parseInt(card.getAttribute('data-job-id'));
+          const job = matched.find(j => j.id === jobId);
+          if (job) generateAndShowCoverLetter(job);
+        });
+      });
+    });
+  }
+
+  // ── JOB APPLY: Inject inline button ─────────────────────────────────────────
+  function injectApplyPageButton() {
+    if (document.getElementById('upo-cl-inject-btn')) return;
+
+    const makeBtn = () => {
+      const btn = document.createElement('button');
+      btn.id = 'upo-cl-inject-btn';
+      btn.type = 'button';
+      btn.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        ✨ Write Cover Letter with AI
+      `;
+      btn.addEventListener('click', () => {
+        if (!panelOpen) { panelOpen = true; panel.classList.add('open'); }
+        chrome.storage.local.get(['authToken'], (res) => {
+          if (!res.authToken) { renderLoginScreen(); return; }
+          const job = scrapeCurrentJob();
+          generateAndShowCoverLetter(job);
+        });
+      });
+      return btn;
+    };
+
+    const tryInject = () => {
+      if (document.getElementById('upo-cl-inject-btn')) return true;
+
+      // Try to insert after ANY textarea on the page (Upwork proposal form)
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        textarea.parentNode.insertBefore(makeBtn(), textarea.nextSibling);
+        return true;
+      }
+
+      // Fallback: insert before the submit / "apply" button
+      const submitBtn = document.querySelector(
+        'button[type="submit"], [data-test="apply-button"], [data-qa="btn-apply"]'
+      );
+      if (submitBtn) {
+        submitBtn.parentNode.insertBefore(makeBtn(), submitBtn);
+        return true;
+      }
+
+      // Last resort: append to main content area
+      const main = document.querySelector('main, [role="main"], #main, .main-content, form');
+      if (main) {
+        main.appendChild(makeBtn());
+        return true;
+      }
+
+      return false;
+    };
+
+    if (!tryInject()) {
+      // Poll for dynamic content
+      let attempts = 0;
+      const interval = setInterval(() => {
+        if (tryInject() || ++attempts >= 20) clearInterval(interval);
+      }, 600);
+
+      // Also watch for DOM changes (SPA navigation inside the page)
+      const observer = new MutationObserver(() => {
+        if (tryInject()) observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+  }
+
   // ── API ANALYSIS ────────────────────────────────────────────────────────────
-  async function runAnalysis(profile) {
+  async function runAnalysis(profile, forceRegenerate = false) {
+    // Check cache first (keyed by profile name + title)
+    const analysisCacheKey = 'upoAnalysis_' + btoa(encodeURIComponent((profile.name || '') + (profile.title || ''))).substring(0, 24);
+
+    if (!forceRegenerate) {
+      const cached = await chrome.storage.local.get([analysisCacheKey]);
+      if (cached[analysisCacheKey]) {
+        renderResultsScreen(cached[analysisCacheKey].data, cached[analysisCacheKey].profile);
+        return;
+      }
+    }
+
     renderLoadingScreen();
 
     const profileContent = `
@@ -1201,6 +1794,8 @@
       }
 
       if (json.success && json.data) {
+        // Save to cache
+        chrome.storage.local.set({ [analysisCacheKey]: { data: json.data, profile } });
         renderResultsScreen(json.data, profile);
       } else {
         throw new Error("Invalid response format received from API");
@@ -1220,6 +1815,15 @@
       chrome.storage.local.get(["authToken"], (res) => {
         if (!res.authToken) {
           renderLoginScreen();
+        } else if (isJobListingPage()) {
+          const profile = scrapeProfile();
+          if (profile.isLikelyProfile) {
+            chrome.storage.local.set({ upoProfile: profile });
+          }
+          renderMatchingJobsScreen();
+        } else if (isJobApplyPage()) {
+          const job = scrapeCurrentJob();
+          generateAndShowCoverLetter(job);
         } else {
           renderReadyScreen();
         }
@@ -1227,11 +1831,87 @@
     }
   }
 
+  // Dynamic FAB click — always reads current page type at click time
   fab.addEventListener("click", togglePanel);
-  document.getElementById("upo-close-btn").addEventListener("click", togglePanel);
+
+  document.getElementById("upo-close-btn").addEventListener("click", () => {
+    panelOpen = false;
+    panel.classList.remove("open");
+  });
   document.getElementById("upo-dash-btn").addEventListener("click", () => {
     window.open(`${APP_URL}/dashboard`, "_blank");
   });
+
+  // ── SPA navigation adapter ────────────────────────────────────────────────
+  // Upwork is a React SPA — when the user navigates between pages the URL
+  // changes via history.pushState / popstate but our content script doesn't
+  // re-run. We intercept URL changes and re-adapt the UI accordingly.
+
+  // ⚠️ Initialize to empty string (NOT location.href) so the very first call
+  // to adaptToCurrentPage() always runs the full setup, even on a direct load.
+  let _lastUrl = "";
+
+  function adaptToCurrentPage() {
+    const newUrl = location.href;
+    if (newUrl === _lastUrl) return;
+    _lastUrl = newUrl;
+
+    // Close the panel on navigation (avoids stale content)
+    if (panelOpen) {
+      panelOpen = false;
+      panel.classList.remove("open");
+    }
+
+    // Remove any injected apply-page button from the previous page
+    document.getElementById("upo-cl-inject-btn")?.remove();
+
+    if (isJobApplyPage()) {
+      // Hide FAB, show inline button
+      fab.style.display = "none";
+      injectApplyPageButton();
+    } else if (isJobListingPage()) {
+      // Show matching-jobs FAB
+      fab.style.display = "";
+      fab.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        Find Matching Jobs
+      `;
+    } else {
+      // Default: profile optimizer FAB
+      fab.style.display = "";
+      fab.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+        Optimize Profile
+      `;
+    }
+  }
+
+  // Intercept pushState (covers React Router navigations)
+  const _origPushState = history.pushState.bind(history);
+  history.pushState = function (...args) {
+    _origPushState(...args);
+    // Small delay so the new page's DOM has started rendering
+    setTimeout(adaptToCurrentPage, 100);
+  };
+
+  // Also handle browser back/forward
+  window.addEventListener("popstate", () => setTimeout(adaptToCurrentPage, 100));
+
+  // Run once immediately for the initial load
+  adaptToCurrentPage();
+
+  // ── Cache profile when on profile pages ─────────────────────────────────────
+  if (isProfilePage()) {
+    getCompleteProfile().then(profile => {
+      if (profile.isLikelyProfile) {
+        chrome.storage.local.set({ upoProfile: profile });
+      }
+    });
+  }
 
   // ── CLEANUP ON EXTENSION REMOVAL ────────────────────────────────────────────
   const checkInterval = setInterval(() => {

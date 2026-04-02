@@ -23,7 +23,11 @@
             "matches": [
                 "https://www.upwork.com/freelancers/*",
                 "https://www.upwork.com/profile/*",
-                "https://www.upwork.com/o/profiles/*"
+                "https://www.upwork.com/o/profiles/*",
+                "https://www.upwork.com/nx/find-work/*",
+                "https://www.upwork.com/jobs/*",
+                "https://www.upwork.com/ab/proposals/*",
+                "https://www.upwork.com/nx/proposals/*"
             ],
             "css": [
                 "panel.css"
